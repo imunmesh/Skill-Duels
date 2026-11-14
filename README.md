@@ -112,10 +112,45 @@ npm run lint
 
 ---
 
-## 5. Teammate API Integration Contract
+## 5. Gameplay & Progression Mechanics (FR-02 to FR-10)
 
-See [`docs/API_CONTRACT.md`](./docs/API_CONTRACT.md) for detailed JSON payloads and instructions for:
-- **Student 2 (Match Engine):** Using `authenticateSocket` for Socket.IO handshake auth.
-- **Student 3 (React Client):** Sending `Bearer <token>` headers and handling errors.
-- **Student 4 (Admin / Quiz Content):** Securing quiz management routes using `requireRole('admin')`.
+### 1. Matchmaking & Duels (FR-03, AC-01)
+- Players select a skill domain (**Technical & CS**, **Quantitative Aptitude**, **Logical Reasoning**, **Web Development**, or **Data Structures & Algorithms**).
+- Clicking **Find Opponent** places the player into the matchmaking pool.
+- As soon as a peer queues in the same category, the server pairs them into a synchronized room and dispatches the exact same question set to both screens.
+
+### 2. Server-Authoritative Timer & Speed Bonus (FR-04, FR-05, AC-02, AC-03)
+- Each question runs on a strict server countdown timer (typically 10 seconds).
+- **Scoring Formula:**
+  $$\text{Points} = \text{Base Points (100)} + (\text{Remaining Seconds} \times 5)$$
+- When a player answers, their score updates live on their opponent's HUD without a page refresh!
+- When the countdown reaches zero, the round automatically closes, reveals the correct option in green, and enters a 3-second intermission before advancing.
+
+### 3. XP Progression & Rank Tiers (FR-02, AC-04)
+At the end of every duel, the server awards XP and updates rank tiers:
+- **Victory:** `+50 XP`
+- **Draw:** `+25 XP`
+- **Defeat / Participation:** `+15 XP`
+
+| Rank Tier | Minimum XP | Icon |
+|---|---|---|
+| **Novice** | 0 XP | 🌱 |
+| **Apprentice** | 100 XP | 📜 |
+| **Warrior** | 300 XP | 🛡️ |
+| **Veteran** | 600 XP | ⚔️ |
+| **Master** | 1,000 XP | 💎 |
+| **Grandmaster** | 2,000+ XP | 👑 |
+
+### 4. Streaks & Achievement Badges (FR-10)
+- **Daily Participation Streaks:** Playing on consecutive days maintains a streak (`🔥`). Reaching 3+ days grants `+10 XP` bonus points per duel; 7+ days grants `+25 XP`.
+- **Badges:** Automatically unlocked for milestones (`Arena Initiate`, `First Blood`, `On Fire`, `Centurion`, `Veteran Duelist`, `Grandmaster Champion`).
+
+---
+
+## 6. Project Documentation & Reviews
+- **API Contract:** [`docs/API_CONTRACT.md`](./docs/API_CONTRACT.md)
+- **Socket.IO Event Specifications:** [`docs/SOCKET_EVENTS.md`](./docs/SOCKET_EVENTS.md)
+- **Quiz Content & Anti-Cheat Tests:** [`docs/QUIZ_CONTENT_TESTS.md`](./docs/QUIZ_CONTENT_TESTS.md)
+- **Live Demo Video Script:** [`docs/DEMO_VIDEO_SCRIPT.md`](./docs/DEMO_VIDEO_SCRIPT.md)
+- **Mid-Point Status Note:** [`docs/MID_POINT_STATUS_NOTE.md`](./docs/MID_POINT_STATUS_NOTE.md)
 - **Student 5 (XP & Leaderboard):** Modifying player XP and querying top-ranked players.

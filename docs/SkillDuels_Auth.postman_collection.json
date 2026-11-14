@@ -1,0 +1,213 @@
+{
+  "info": {
+    "_postman_id": "skillduels-auth-v1",
+    "name": "SkillDuels Backend - Auth & Role Endpoints",
+    "description": "Postman Collection for SkillDuels Auth (FR-01, NFR-03)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/health",
+          "host": ["{{BASE_URL}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "1. Register Player",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.token) {",
+              "    pm.environment.set('PLAYER_TOKEN', jsonData.token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"player_one\",\n  \"email\": \"player1@skillduels.com\",\n  \"password\": \"Password123!\",\n  \"role\": \"player\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/auth/register",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "2. Register Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.token) {",
+              "    pm.environment.set('ADMIN_TOKEN', jsonData.token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin_master\",\n  \"email\": \"admin@skillduels.com\",\n  \"password\": \"AdminSecure2026!\",\n  \"role\": \"admin\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/auth/register",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "3. Login Player",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.token) {",
+              "    pm.environment.set('PLAYER_TOKEN', jsonData.token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"player1@skillduels.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/auth/login",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "4. Get Current Profile (Me)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{PLAYER_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/auth/me",
+          "host": ["{{BASE_URL}}"],
+          "path": ["auth", "me"]
+        }
+      }
+    },
+    {
+      "name": "5. Role Test - Public (Anyone)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/test/public",
+          "host": ["{{BASE_URL}}"],
+          "path": ["test", "public"]
+        }
+      }
+    },
+    {
+      "name": "6. Role Test - Player Only (Player Token)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{PLAYER_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/test/player-only",
+          "host": ["{{BASE_URL}}"],
+          "path": ["test", "player-only"]
+        }
+      }
+    },
+    {
+      "name": "7. Role Test - Admin Only (with Player Token - Expect 403)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{PLAYER_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/test/admin-only",
+          "host": ["{{BASE_URL}}"],
+          "path": ["test", "admin-only"]
+        }
+      }
+    },
+    {
+      "name": "8. Role Test - Admin Only (with Admin Token - Expect 200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ADMIN_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/test/admin-only",
+          "host": ["{{BASE_URL}}"],
+          "path": ["test", "admin-only"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5000/api"
+    }
+  ]
+}
