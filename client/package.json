@@ -1,0 +1,9 @@
+{
+  "name": "skillduels-client",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SkillDuels React Frontend application (Student 3 ownership)",
+  "scripts": {
+    "dev": "echo \"Client workspace ready for Student 3. Run 'npm create vite@latest .' to initialize React/Vite app.\""
+  }
+}
