@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Match = require('../models/Match');
-const { RANK_TIERS, AVAILABLE_BADGES } = require('../services/progressionService');
+const { RANK_TIERS, AVAILABLE_BADGES, getActiveStreak } = require('../services/progressionService');
 
 /**
  * @desc    Get Global Leaderboard ranked by XP (FR-06, AC-05, NFR-02)
@@ -38,7 +38,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
         player.stats?.matchesPlayed > 0
           ? Math.round((player.stats.matchesWon / player.stats.matchesPlayed) * 100)
           : 0,
-      streak: player.streak?.current || 0,
+      streak: getActiveStreak(player.streak),
     }));
 
     return res.status(200).json({
@@ -84,7 +84,7 @@ const getWeeklyLeaderboard = async (req, res, next) => {
       totalXP: player.xp || 0,
       rank: player.rank || 'Novice',
       badgesCount: (player.badges || []).length,
-      streak: player.streak?.current || 0,
+      streak: getActiveStreak(player.streak),
     }));
 
     return res.status(200).json({
@@ -185,7 +185,7 @@ const getUserProgression = async (req, res, next) => {
               : 0,
         },
         streak: {
-          current: user.streak?.current || 0,
+          current: getActiveStreak(user.streak),
           highest: user.streak?.highest || 0,
           lastMatchDate: user.streak?.lastMatchDate || null,
         },

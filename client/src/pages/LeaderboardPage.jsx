@@ -155,15 +155,15 @@ export const LeaderboardPage = ({ onBackToArena }) => {
           <span>{totalPlayers} Total Players Ranked</span>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-responsive" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
             <thead>
               <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-                <th style={{ padding: '0.85rem 1rem', width: 70, textAlign: 'center' }}>Rank</th>
+                <th style={{ padding: '0.85rem 1rem', width: 60, textAlign: 'center' }}>Rank</th>
                 <th style={{ padding: '0.85rem 1rem' }}>Player</th>
-                <th style={{ padding: '0.85rem 1rem' }}>Tier</th>
+                <th className="hide-on-mobile" style={{ padding: '0.85rem 1rem' }}>Tier</th>
                 <th style={{ padding: '0.85rem 1rem' }}>Streak</th>
-                <th style={{ padding: '0.85rem 1rem' }}>Badges</th>
+                <th className="hide-on-mobile" style={{ padding: '0.85rem 1rem' }}>Badges</th>
                 <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
                   {leaderboardType === 'weekly' ? 'Weekly XP' : 'Total XP'}
                 </th>
@@ -242,7 +242,7 @@ export const LeaderboardPage = ({ onBackToArena }) => {
                       </td>
 
                       {/* Rank Tier */}
-                      <td style={{ padding: '0.85rem 1rem' }}>
+                      <td className="hide-on-mobile" style={{ padding: '0.85rem 1rem' }}>
                         <span className="badge badge-primary" style={{ fontSize: '0.7rem' }}>
                           {row.rank}
                         </span>
@@ -257,7 +257,7 @@ export const LeaderboardPage = ({ onBackToArena }) => {
                       </td>
 
                       {/* Badges count */}
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>
+                      <td className="hide-on-mobile" style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                           <Award size={14} color="#fcd34d" />
                           <span>{row.badgesCount || 0}</span>

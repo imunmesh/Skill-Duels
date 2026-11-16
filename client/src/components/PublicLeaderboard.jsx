@@ -131,13 +131,13 @@ export const PublicLeaderboard = () => {
       </div>
 
       {/* Leaderboard Table */}
-      <div style={{ overflowX: 'auto' }}>
+      <div className="table-responsive" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
           <thead>
             <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
-              <th style={{ padding: '0.5rem 0.75rem', width: 50, textAlign: 'center' }}>Rank</th>
+              <th style={{ padding: '0.5rem 0.75rem', width: 45, textAlign: 'center' }}>Rank</th>
               <th style={{ padding: '0.5rem 0.75rem' }}>Duelist</th>
-              <th style={{ padding: '0.5rem 0.75rem' }}>Tier</th>
+              <th className="hide-on-mobile" style={{ padding: '0.5rem 0.75rem' }}>Tier</th>
               <th style={{ padding: '0.5rem 0.75rem', textAlign: 'right' }}>
                 {type === 'weekly' ? 'Weekly XP' : 'Total XP'}
               </th>
@@ -244,7 +244,7 @@ export const PublicLeaderboard = () => {
                     </td>
 
                     {/* Tier */}
-                    <td style={{ padding: '0.6rem 0.75rem' }}>
+                    <td className="hide-on-mobile" style={{ padding: '0.6rem 0.75rem' }}>
                       <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
                         {player.rank}
                       </span>

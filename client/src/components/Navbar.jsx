@@ -103,13 +103,13 @@ export const Navbar = ({ currentView, onNavigate }) => {
                   boxShadow: connected ? '0 0 6px #10b981' : 'none',
                 }}
               />
-              {connected ? 'LIVE SERVER' : 'CONNECTING...'}
+              <span className="nav-server-text">{connected ? 'LIVE' : 'CONNECTING...'}</span>
             </div>
           )}
 
           {/* Authenticated Controls */}
           {isAuthenticated && user && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
               {/* ADMIN ONLY VIEW */}
               {user.role === 'admin' ? (
                 <>
@@ -139,11 +139,12 @@ export const Navbar = ({ currentView, onNavigate }) => {
                     type="button"
                     onClick={() => onNavigate('arena')}
                     className={`btn ${currentView === 'arena' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '0.35rem 0.75rem', minHeight: 34, fontSize: '0.85rem' }}
+                    style={{ padding: '0.35rem 0.65rem', minHeight: 34, fontSize: '0.85rem' }}
                     aria-label="Go to Duel Arena"
+                    title="Duel Arena"
                   >
-                    <Swords size={14} />
-                    <span>Arena</span>
+                    <Swords size={15} />
+                    <span className="nav-btn-label">Arena</span>
                   </button>
 
                   {/* Leaderboard Button */}
@@ -151,11 +152,12 @@ export const Navbar = ({ currentView, onNavigate }) => {
                     type="button"
                     onClick={() => onNavigate('leaderboard')}
                     className={`btn ${currentView === 'leaderboard' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '0.35rem 0.75rem', minHeight: 34, fontSize: '0.85rem' }}
+                    style={{ padding: '0.35rem 0.65rem', minHeight: 34, fontSize: '0.85rem' }}
                     aria-label="View Leaderboards"
+                    title="Leaderboards"
                   >
-                    <Trophy size={14} />
-                    <span>Leaderboard</span>
+                    <Trophy size={15} />
+                    <span className="nav-btn-label">Leaderboard</span>
                   </button>
 
                   {/* My Profile Button with Avatar Thumbnail */}
@@ -164,7 +166,7 @@ export const Navbar = ({ currentView, onNavigate }) => {
                     onClick={() => onNavigate('profile')}
                     className={`btn ${currentView === 'profile' ? 'btn-primary' : 'btn-secondary'}`}
                     style={{
-                      padding: '0.25rem 0.65rem 0.25rem 0.4rem',
+                      padding: '0.25rem 0.55rem 0.25rem 0.35rem',
                       minHeight: 34,
                       fontSize: '0.85rem',
                       display: 'flex',
@@ -172,6 +174,7 @@ export const Navbar = ({ currentView, onNavigate }) => {
                       gap: '0.45rem',
                     }}
                     aria-label="View My Profile"
+                    title="My Profile"
                   >
                     {user.avatarUrl ? (
                       <img
@@ -203,7 +206,7 @@ export const Navbar = ({ currentView, onNavigate }) => {
                         {userInitial}
                       </div>
                     )}
-                    <span>{user.displayName || user.username}</span>
+                    <span className="nav-user-name">{user.displayName || user.username}</span>
                   </button>
 
                   {/* XP Pill */}
@@ -214,11 +217,12 @@ export const Navbar = ({ currentView, onNavigate }) => {
                       gap: '0.35rem',
                       background: 'var(--bg-input)',
                       border: '1px solid var(--border-color)',
-                      padding: '0.35rem 0.65rem',
+                      padding: '0.35rem 0.55rem',
                       borderRadius: 'var(--radius-sm)',
                       fontSize: '0.8rem',
                       fontWeight: 700,
                     }}
+                    title={`${user.xp || 0} Total XP`}
                   >
                     <Zap size={13} color="#f59e0b" />
                     <span style={{ color: '#fcd34d' }}>{user.xp || 0} XP</span>
@@ -231,11 +235,12 @@ export const Navbar = ({ currentView, onNavigate }) => {
                 type="button"
                 onClick={logout}
                 className="btn btn-secondary"
-                style={{ padding: '0.35rem 0.75rem', minHeight: 34, fontSize: '0.85rem' }}
+                style={{ padding: '0.35rem 0.65rem', minHeight: 34, fontSize: '0.85rem' }}
                 aria-label="Log out of SkillDuels"
+                title="Log Out"
               >
-                <LogOut size={14} />
-                <span>Logout</span>
+                <LogOut size={15} />
+                <span className="nav-btn-label">Logout</span>
               </button>
             </div>
           )}

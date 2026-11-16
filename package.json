@@ -11,7 +11,9 @@
     "server": "npm run dev --prefix server",
     "client": "npm run dev --prefix client",
     "dev": "npm run server",
+    "test": "npm run test:unit --prefix server",
     "lint": "npm run lint --prefix server",
+    "build:client": "npm run build --prefix client",
     "format": "prettier --write \"**/*.{js,jsx,json,md}\""
   },
   "devDependencies": {

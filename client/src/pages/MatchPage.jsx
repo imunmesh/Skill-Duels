@@ -360,7 +360,7 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
       {/* Head-to-Head HUD (Live Scores - FR-05, AC-02) */}
       <section
         aria-label="Match Live Scoreboard"
-        className="card"
+        className="card match-hud-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
@@ -372,11 +372,13 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
         }}
       >
         {/* Player 1 (You) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <div
+            className="match-avatar-circle"
             style={{
               width: 44,
               height: 44,
+              minWidth: 44,
               borderRadius: '50%',
               background: 'var(--accent-gradient)',
               display: 'flex',
@@ -389,12 +391,12 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
             {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ fontWeight: 700, fontSize: '1rem' }}>{user?.username || 'You'}</span>
-              <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>YOU</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span className="match-user-name" style={{ fontWeight: 700, fontSize: '0.95rem' }}>{user?.username || 'You'}</span>
+              <span className="badge badge-primary" style={{ fontSize: '0.6rem', padding: '0.15rem 0.45rem' }}>YOU</span>
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#818cf8', fontFamily: 'JetBrains Mono, monospace' }}>
-              {playerScore} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>PTS</span>
+            <div className="match-user-score" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#818cf8', fontFamily: 'JetBrains Mono, monospace' }}>
+              {playerScore} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PTS</span>
             </div>
           </div>
         </div>
@@ -406,6 +408,7 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
             aria-live="polite"
             aria-atomic="true"
             aria-label={`${remainingSeconds} seconds remaining for this question`}
+            className="match-timer-box"
             style={{
               width: 58,
               height: 58,
@@ -422,6 +425,7 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
             }}
           >
             <span
+              className="match-timer-number"
               style={{
                 fontFamily: 'JetBrains Mono, monospace',
                 fontSize: '1.35rem',
@@ -432,26 +436,28 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
               {remainingSeconds}
             </span>
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             SECONDS
           </span>
         </div>
 
         {/* Player 2 (Opponent) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem' }}>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
-              <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>OPPONENT</span>
-              <span style={{ fontWeight: 700, fontSize: '1rem' }}>{opponent.username}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
+              <span className="badge badge-warning" style={{ fontSize: '0.6rem', padding: '0.15rem 0.45rem' }}>OPP</span>
+              <span className="match-user-name" style={{ fontWeight: 700, fontSize: '0.95rem' }}>{opponent.username}</span>
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f59e0b', fontFamily: 'JetBrains Mono, monospace' }}>
-              {opponentScore} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>PTS</span>
+            <div className="match-user-score" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f59e0b', fontFamily: 'JetBrains Mono, monospace' }}>
+              {opponentScore} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PTS</span>
             </div>
           </div>
           <div
+            className="match-avatar-circle"
             style={{
               width: 44,
               height: 44,
+              minWidth: 44,
               borderRadius: '50%',
               background: 'rgba(245, 158, 11, 0.2)',
               border: '2px solid #f59e0b',
@@ -470,19 +476,20 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
 
       {/* Question Card & Accessible Options (AC-01, NFR-05, NFR-07) */}
       {currentQuestion ? (
-        <section className="card" style={{ padding: '2.5rem' }}>
+        <section className="card" style={{ padding: '2rem' }}>
           {/* Question Meta Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <span className="badge badge-primary">
               Question {currentQuestion.questionNumber} of {currentQuestion.totalQuestions}
             </span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+            <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
               Category: <strong style={{ color: '#ffffff' }}>{currentQuestion.category}</strong>
             </span>
           </div>
 
           {/* Prompt */}
           <h2
+            className="match-prompt-heading"
             style={{
               fontSize: '1.35rem',
               fontWeight: 700,
@@ -498,6 +505,7 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
           <div
             role="radiogroup"
             aria-label="Answer options"
+            className="match-options-container"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
@@ -538,10 +546,11 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
                   aria-label={`Option ${idx + 1}: ${optionText}`}
                   disabled={isAnswerSubmitted || phase === 'intermission'}
                   onClick={() => handleSelectOption(idx)}
+                  className="match-option-button"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '1rem',
+                    gap: '0.85rem',
                     background: btnBg,
                     border: `2px solid ${borderColor}`,
                     borderRadius: 'var(--radius-md)',

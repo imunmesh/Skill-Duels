@@ -1,0 +1,117 @@
+name: SkillDuels CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ========================================================
+  # 1. Backend Continuous Integration (Lint, Test, Quality)
+  # ========================================================
+  backend-ci:
+    name: Backend CI (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 18.x, 20.x ]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: 'server/package-lock.json'
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Run ESLint code quality checks
+        working-directory: server
+        run: npm run lint
+
+      - name: Run automated unit test suite
+        working-directory: server
+        run: npm run test:unit
+
+  # ========================================================
+  # 2. Frontend Continuous Integration (Build, Bundle Check)
+  # ========================================================
+  frontend-ci:
+    name: Frontend CI (Vite SPA Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: 'client/package-lock.json'
+
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Build Vite production distribution
+        working-directory: client
+        env:
+          VITE_API_URL: https://skill-duels.onrender.com/api
+          VITE_SOCKET_URL: https://skill-duels.onrender.com
+        run: npm run build
+
+      - name: Verify build artifacts
+        working-directory: client
+        run: |
+          test -f dist/index.html || { echo "dist/index.html missing"; exit 1; }
+          echo "Production assets successfully generated in client/dist"
+
+  # ========================================================
+  # 3. Continuous Deployment (Render Deploy Webhooks)
+  # ========================================================
+  deploy:
+    name: Continuous Deployment (Render)
+    needs: [ backend-ci, frontend-ci ]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Backend Render Deploy Hook
+        if: env.RENDER_BACKEND_HOOK != ''
+        env:
+          RENDER_BACKEND_HOOK: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}
+        run: |
+          echo "Triggering automated deployment for SkillDuels Backend..."
+          curl -s -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}" > /dev/null
+          echo "Backend deploy hook triggered successfully."
+
+      - name: Trigger Frontend Render Deploy Hook
+        if: env.RENDER_FRONTEND_HOOK != ''
+        env:
+          RENDER_FRONTEND_HOOK: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
+        run: |
+          echo "Triggering automated deployment for SkillDuels Frontend..."
+          curl -s -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}" > /dev/null
+          echo "Frontend deploy hook triggered successfully."
+
+      - name: Deployment Status Summary
+        run: |
+          echo "========================================================"
+          echo "   CI/CD Pipeline Completed Successfully"
+          echo "   Backend Lint & Unit Tests: PASSED"
+          echo "   Frontend Production Build: PASSED"
+          echo "   Render CD Triggers: ACTIVE"
+          echo "========================================================"

@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const User = require('../models/User');
 const { SKILLS_CATALOG, ALL_SKILLS } = require('../constants/skills');
+const { getActiveStreak } = require('../services/progressionService');
 
 /**
  * Validate actual binary content type via magic bytes
@@ -70,7 +71,11 @@ const getMyProfile = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    return res.status(200).json({ success: true, user });
+    const userObj = user.toObject();
+    if (userObj.streak) {
+      userObj.streak.current = getActiveStreak(userObj.streak);
+    }
+    return res.status(200).json({ success: true, user: userObj });
   } catch (error) {
     next(error);
   }

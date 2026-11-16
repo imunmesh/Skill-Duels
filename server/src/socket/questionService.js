@@ -6,10 +6,10 @@ const Question = require('../models/Question');
  * Fetch a shared question set for both players from MongoDB (AC-01, AC-06)
  *
  * @param {string} category - Skill category slug or ObjectId
- * @param {number} count - Number of questions per duel (default: 3)
+ * @param {number} count - Number of questions per duel (default: 5)
  * @returns {Promise<Array>} Array of full question objects (including correct answer for server use)
  */
-const fetchMatchQuestions = async (category = 'technical', count = 3) => {
+const fetchMatchQuestions = async (category = 'technical', count = 5) => {
   if (mongoose.connection.readyState !== 1) {
     throw new Error('[Question Service] Database is not connected. Live MongoDB connection required.');
   }

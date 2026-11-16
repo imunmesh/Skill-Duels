@@ -199,6 +199,7 @@ export const LobbyPage = ({ onMatchFound }) => {
               </div>
             ) : (
               <div
+                className="lobby-category-grid"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -261,7 +262,7 @@ export const LobbyPage = ({ onMatchFound }) => {
 
           {/* Action Card */}
           <div
-            className="card"
+            className="card lobby-action-box"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -287,7 +288,7 @@ export const LobbyPage = ({ onMatchFound }) => {
               type="button"
               disabled={!connected || loadingCategories}
               onClick={handleStartSearch}
-              className="btn btn-primary"
+              className="btn btn-primary lobby-action-button"
               style={{ fontSize: '1.05rem', padding: '0.85rem 2rem' }}
               aria-label="Find an opponent and start duel"
             >

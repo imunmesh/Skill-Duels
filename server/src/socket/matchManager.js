@@ -20,7 +20,7 @@ class MatchManager {
    */
   async createMatch(io, player1, player2, category = 'technical') {
     const matchId = `match_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const questions = await fetchMatchQuestions(category, 3);
+    const questions = await fetchMatchQuestions(category, 5);
 
     const matchState = {
       id: matchId,
@@ -373,6 +373,7 @@ class MatchManager {
       player2: p2,
       winnerId,
       reason,
+      totalQuestions: match.questions.length,
     });
 
     const finalPayload = {

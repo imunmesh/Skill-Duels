@@ -99,6 +99,31 @@ const AVAILABLE_BADGES = {
 };
 
 /**
+ * Calculate difference in calendar days (UTC) between two dates (FR-10)
+ * Ensures daily streaks track true calendar dates, not raw 24-hour millisecond windows.
+ */
+const getCalendarDayDifference = (dateA, dateB) => {
+  if (!dateA || !dateB) return null;
+  const dA = new Date(dateA);
+  const dB = new Date(dateB);
+  const utcDayA = Math.floor(Date.UTC(dA.getUTCFullYear(), dA.getUTCMonth(), dA.getUTCDate()) / 86400000);
+  const utcDayB = Math.floor(Date.UTC(dB.getUTCFullYear(), dB.getUTCMonth(), dB.getUTCDate()) / 86400000);
+  return utcDayB - utcDayA;
+};
+
+/**
+ * Get active streak taking expiration into account (FR-10)
+ * A streak is active if the last match occurred today (0) or yesterday (1).
+ * If 2 or more calendar days have passed, active streak is 0.
+ */
+const getActiveStreak = (streakObj, referenceDate = new Date()) => {
+  if (!streakObj || !streakObj.current || !streakObj.lastMatchDate) return 0;
+  const diffDays = getCalendarDayDifference(streakObj.lastMatchDate, referenceDate);
+  if (diffDays === null || diffDays > 1) return 0;
+  return streakObj.current;
+};
+
+/**
  * Process match completion: updates player XP, rank, streaks, badges, and records match (FR-02, AC-04, FR-10)
  * Exposed for the Socket.IO match engine (Student 2 hook).
  *
@@ -118,6 +143,7 @@ const processMatchProgression = async ({
   player2,
   winnerId,
   reason = 'normal',
+  totalQuestions = 5,
 }) => {
   const isDraw = winnerId === null;
 
@@ -167,24 +193,23 @@ const processMatchProgression = async ({
       const now = new Date();
       let streakBonus = 0;
 
-      // 1. Calculate Participation Streak (FR-10)
+      // 1. Calculate Participation Streak (FR-10) using calendar day differences
       const lastDate = user.streak?.lastMatchDate ? new Date(user.streak.lastMatchDate) : null;
       let currentStreak = user.streak?.current || 0;
 
       if (!lastDate) {
         currentStreak = 1;
       } else {
-        const diffMs = now.getTime() - lastDate.getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffDays = getCalendarDayDifference(lastDate, now);
 
         if (diffDays === 0) {
-          // Same day, streak intact
+          // Same calendar day, streak stays intact
           if (currentStreak === 0) currentStreak = 1;
         } else if (diffDays === 1) {
-          // Consecutive day, increment
+          // Consecutive calendar day, increment streak
           currentStreak += 1;
-        } else {
-          // Missed days, reset to 1
+        } else if (diffDays > 1) {
+          // Missed one or more days, reset streak to 1
           currentStreak = 1;
         }
       }
@@ -297,7 +322,7 @@ const processMatchProgression = async ({
       winnerId: winnerId ? new mongoose.Types.ObjectId(winnerId) : null,
       isDraw,
       reason,
-      totalQuestions: 3,
+      totalQuestions: totalQuestions || 5,
     });
 
     console.log(`[Progression Service] Match ${matchId} persisted. Ranks and XP synchronized.`);
@@ -313,4 +338,6 @@ module.exports = {
   RANK_TIERS,
   AVAILABLE_BADGES,
   processMatchProgression,
+  getActiveStreak,
+  getCalendarDayDifference,
 };

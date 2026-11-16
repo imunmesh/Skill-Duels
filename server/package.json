@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "lint": "eslint \"src/**/*.js\"",
     "lint:fix": "eslint \"src/**/*.js\" --fix",
+    "test:unit": "node src/scripts/test-unit.js",
     "seed": "node src/scripts/seed.js",
     "test:match": "node src/socket/testClient.js",
     "verify": "node src/scripts/verify-e2e.js"
