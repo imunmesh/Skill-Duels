@@ -30,19 +30,16 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-          cache-dependency-path: 'server/package-lock.json'
+          cache-dependency-path: 'package-lock.json'
 
-      - name: Install server dependencies
-        working-directory: server
+      - name: Install dependencies (Workspaces)
         run: npm ci
 
       - name: Run ESLint code quality checks
-        working-directory: server
         run: npm run lint
 
       - name: Run automated unit test suite
-        working-directory: server
-        run: npm run test:unit
+        run: npm test
 
   # ========================================================
   # 2. Frontend Continuous Integration (Build, Bundle Check)
@@ -60,23 +57,20 @@ jobs:
         with:
           node-version: 20.x
           cache: 'npm'
-          cache-dependency-path: 'client/package-lock.json'
+          cache-dependency-path: 'package-lock.json'
 
-      - name: Install client dependencies
-        working-directory: client
+      - name: Install dependencies (Workspaces)
         run: npm ci
 
       - name: Build Vite production distribution
-        working-directory: client
         env:
           VITE_API_URL: https://skill-duels.onrender.com/api
           VITE_SOCKET_URL: https://skill-duels.onrender.com
-        run: npm run build
+        run: npm run build:client
 
       - name: Verify build artifacts
-        working-directory: client
         run: |
-          test -f dist/index.html || { echo "dist/index.html missing"; exit 1; }
+          test -f client/dist/index.html || { echo "client/dist/index.html missing"; exit 1; }
           echo "Production assets successfully generated in client/dist"
 
   # ========================================================
