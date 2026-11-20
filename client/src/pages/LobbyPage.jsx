@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { categoryAPI } from '../services/api';
@@ -23,6 +24,8 @@ const COLOR_MAP = {
 export const LobbyPage = ({ onMatchFound }) => {
   const { user } = useAuth();
   const { socket, connected, connectionError } = useSocket();
+  const [searchParams] = useSearchParams();
+  const categoryParam = searchParams.get('category');
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -35,18 +38,29 @@ export const LobbyPage = ({ onMatchFound }) => {
       const res = await categoryAPI.getAll(false);
       if (res.success && res.categories?.length > 0) {
         setCategories(res.categories);
-        setSelectedCategory(res.categories[0].slug);
+        const match = categoryParam && res.categories.find((c) => c.slug === categoryParam);
+        setSelectedCategory(match ? match.slug : res.categories[0].slug);
       }
     } catch (err) {
       console.error('[Lobby] Failed to load categories from database:', err);
     } finally {
       setLoadingCategories(false);
     }
-  }, []);
+  }, [categoryParam]);
 
   useEffect(() => {
     loadLiveCategories();
   }, [loadLiveCategories]);
+
+  // Sync selected category if URL search query changes
+  useEffect(() => {
+    if (categoryParam && categories.length > 0) {
+      const match = categories.find((c) => c.slug === categoryParam);
+      if (match && selectedCategory !== match.slug) {
+        setSelectedCategory(match.slug);
+      }
+    }
+  }, [categoryParam, categories, selectedCategory]);
 
   // Matchmaking search timer
   useEffect(() => {

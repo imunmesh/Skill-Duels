@@ -56,6 +56,7 @@ export type MeadowPreset = "auto" | MeadowTheme
 export interface MeadowLink {
   label: string
   href?: string
+  onClick?: () => void
 }
 
 export interface MeadowColumn {
@@ -63,7 +64,7 @@ export interface MeadowColumn {
   links: MeadowLink[]
 }
 
-export type MeadowSocialIcon = "linkedin" | "instagram" | "facebook" | "x" | "youtube"
+export type MeadowSocialIcon = "linkedin" | "instagram" | "facebook" | "x" | "youtube" | "github"
 
 export interface MeadowSocial {
   icon: MeadowSocialIcon
@@ -91,7 +92,11 @@ export interface MeadowRiseFooterProps {
   compact?: boolean
   /** The line under the brand. "" hides it. */
   tagline?: string
-  /** Show the email signup. Defaults to true. */
+  /** Live platform statistics line to display in the brand block */
+  statLine?: string
+  /** Action button inside the brand block (e.g. Find Opponent) */
+  statAction?: { label: string; href?: string; onClick?: () => void } | null
+  /** Show the email signup. Defaults to false if statLine is provided, true otherwise. */
   newsletter?: boolean
   /** Placeholder for the email field. */
   placeholder?: string
@@ -223,7 +228,7 @@ const PRESETS: MeadowPaletteMap = {
     pill: "#ffffff",
     pillInk: "#0d1510",
     text: "#f8fafc",
-    muted: "#94a3b8",
+    muted: "#cbd5e1",
     line: "rgba(241, 245, 249, 0.16)",
     night: true,
   },
@@ -236,13 +241,11 @@ const DEFAULT_COLUMNS: MeadowColumn[] = [
 ]
 
 const DEFAULT_SOCIALS: MeadowSocial[] = [
-  { icon: "linkedin" },
-  { icon: "instagram" },
-  { icon: "facebook" },
-  { icon: "x" },
+  { icon: "github", href: "https://github.com/imunmesh/Skill-Duels", label: "SkillDuels GitHub Repository" },
+  { icon: "linkedin", href: "https://www.linkedin.com/in/unmesh-bhangale/", label: "Unmesh Bhangale on LinkedIn" },
 ]
 
-const DEFAULT_LEGAL: MeadowLink[] = [{ label: "Privacy Policy" }, { label: "Terms of Use" }]
+const DEFAULT_LEGAL: MeadowLink[] = [{ label: "Privacy Policy", href: "#privacy" }, { label: "Terms of Use", href: "#terms" }]
 
 interface MeadowSocialNameMap {
   linkedin: string
@@ -250,6 +253,7 @@ interface MeadowSocialNameMap {
   facebook: string
   x: string
   youtube: string
+  github: string
 }
 
 const SOCIAL_NAMES: MeadowSocialNameMap = {
@@ -258,6 +262,7 @@ const SOCIAL_NAMES: MeadowSocialNameMap = {
   facebook: "Facebook",
   x: "X",
   youtube: "YouTube",
+  github: "GitHub",
 }
 
 const SANS_STACK = '"Inter Tight", "Inter", "Inter Variable", "Geist", "Helvetica Neue", Arial, system-ui, sans-serif'
@@ -789,6 +794,12 @@ const SOCIAL_ICONS = {
       d="M21.6 7.2a2.5 2.5 0 0 0-1.77-1.77C18.27 5 12 5 12 5s-6.27 0-7.83.43A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.77 1.77C5.73 19 12 19 12 19s6.27 0 7.83-.43a2.5 2.5 0 0 0 1.77-1.77A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8ZM10 15V9l5.2 3L10 15Z"
     />
   ),
+  github: (
+    <path
+      fill="currentColor"
+      d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z"
+    />
+  ),
 }
 
 function PetalMark() {
@@ -1204,6 +1215,76 @@ const MRF_CSS = `
   border: 0;
 }
 
+.mrf-stat-block {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.mrf-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #f8fafc;
+}
+.mrf-stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: mrf-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes mrf-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+.mrf-stat-text {
+  letter-spacing: -0.01em;
+  color: #cbd5e1;
+}
+.mrf-stat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(99, 102, 241, 0.22);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  color: #ffffff;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.mrf-stat-btn:hover {
+  background: #6366f1;
+  border-color: #818cf8;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+.mrf-stat-btn:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+.mrf-stat-arrow {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+.mrf-stat-btn:hover .mrf-stat-arrow {
+  transform: translateX(3px);
+}
+
 .mrf-cols {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1214,10 +1295,11 @@ const MRF_CSS = `
 }
 .mrf-col h3 {
   margin: 0 0 18px;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--mrf-text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffffff;
 }
 .mrf-col ul {
   list-style: none;
@@ -1230,12 +1312,12 @@ const MRF_CSS = `
   position: relative;
   display: inline-flex;
   align-items: center;
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.35;
-  color: var(--mrf-muted);
+  color: #cbd5e1;
   text-decoration: none;
   border-radius: 4px;
-  transition: color 350ms ease, transform 500ms cubic-bezier(.16, 1, .3, 1);
+  transition: color 250ms ease, transform 300ms cubic-bezier(.16, 1, .3, 1);
 }
 .mrf-link::before {
   content: "";
@@ -1251,9 +1333,9 @@ const MRF_CSS = `
   transform: scale(0.2) rotate(-45deg);
   transition: opacity 300ms ease, transform 500ms cubic-bezier(.16, 1, .3, 1);
 }
-.mrf-link:hover, .mrf-link:focus-visible { color: var(--mrf-text); transform: translateX(8px); }
+.mrf-link:hover, .mrf-link:focus-visible { color: #ffffff; transform: translateX(6px); }
 .mrf-link:hover::before, .mrf-link:focus-visible::before { opacity: 1; transform: none; }
-.mrf-link:focus-visible { outline: 2px solid var(--mrf-text); outline-offset: 3px; }
+.mrf-link:focus-visible { outline: 2px solid #818cf8; outline-offset: 3px; }
 .mrf-social { display: flex; flex-wrap: wrap; gap: 6px; margin: -7px 0 0 -7px; }
 .mrf-icon {
   display: grid;
@@ -1314,13 +1396,15 @@ export default function MeadowRiseFooter({
   cta = { label: "Enter Arena", href: "/arena" },
   secondaryCta,
   compact = false,
-  tagline = "Test your speed, knowledge, and intuition. Climb the global leaderboards.",
+  tagline = "1v1 tech trivia battles. Earn XP, climb the ranks, unlock badges.",
+  statLine,
+  statAction,
   newsletter = true,
   placeholder = "Enter your developer email",
   onSubscribe,
   successMessage = "Welcome challenger! Matchmaking news and streak updates will arrive in your inbox.",
   columns = DEFAULT_COLUMNS,
-  socialTitle = "Community",
+  socialTitle = "Follow Us",
   socials = DEFAULT_SOCIALS,
   copyright,
   legal = DEFAULT_LEGAL,
@@ -1900,7 +1984,26 @@ export default function MeadowRiseFooter({
                   {tagline}
                 </p>
               ) : null}
-              {newsletter ? (
+              {statLine || statAction ? (
+                <div className="mrf-stat-block mrf-r" style={{ "--d": 1500 } as React.CSSProperties}>
+                  {statLine ? (
+                    <div className="mrf-stat-pill">
+                      <span className="mrf-stat-dot" aria-hidden="true" />
+                      <span className="mrf-stat-text">{statLine}</span>
+                    </div>
+                  ) : null}
+                  {statAction ? (
+                    <a
+                      className="mrf-stat-btn"
+                      href={statAction.href || "/arena"}
+                      onClick={statAction.onClick ? (e) => { e.preventDefault(); statAction.onClick?.(); } : undefined}
+                    >
+                      <span>{statAction.label}</span>
+                      <Arrow className="mrf-stat-arrow" />
+                    </a>
+                  ) : null}
+                </div>
+              ) : newsletter ? (
                 <form className="mrf-form mrf-r" style={{ "--d": 1500 } as React.CSSProperties} data-state={formState} onSubmit={submit} noValidate>
                   <label className="mrf-sr" htmlFor={inputId}>
                     Email address
@@ -1954,7 +2057,13 @@ export default function MeadowRiseFooter({
                   <ul>
                     {col.links.map((l, li) => (
                       <li key={l.label + li} className="mrf-r" style={{ "--d": 1380 + ci * 90 + li * 55 } as React.CSSProperties}>
-                        <a className="mrf-link" href={l.href || "#"}>
+                        <a
+                          className="mrf-link"
+                          href={l.href || "#"}
+                          onClick={l.onClick ? (e) => { e.preventDefault(); l.onClick?.(); } : undefined}
+                          target={l.href?.startsWith("http") ? "_blank" : undefined}
+                          rel={l.href?.startsWith("http") ? "noopener noreferrer" : undefined}
+                        >
                           {l.label}
                         </a>
                       </li>
@@ -1972,7 +2081,13 @@ export default function MeadowRiseFooter({
                   <ul className="mrf-social">
                     {socials.map((s, i) => (
                       <li key={s.icon + i} className="mrf-r" style={{ "--d": 1400 + columns.length * 90 + i * 60 } as React.CSSProperties}>
-                        <a className="mrf-icon" href={s.href || "#"} aria-label={s.label || SOCIAL_NAMES[s.icon]}>
+                        <a
+                          className="mrf-icon"
+                          href={s.href || "#"}
+                          aria-label={s.label || SOCIAL_NAMES[s.icon]}
+                          target={s.href?.startsWith("http") ? "_blank" : undefined}
+                          rel={s.href?.startsWith("http") ? "noopener noreferrer" : undefined}
+                        >
                           <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
                             {SOCIAL_ICONS[s.icon]}
                           </svg>
@@ -1996,7 +2111,13 @@ export default function MeadowRiseFooter({
               <ul className="mrf-legal mrf-r" style={{ "--d": 1800 } as React.CSSProperties}>
                 {legal.map((l, i) => (
                   <li key={l.label + i}>
-                    <a className="mrf-link" href={l.href || "#"}>
+                    <a
+                      className="mrf-link"
+                      href={l.href || "#"}
+                      onClick={l.onClick ? (e) => { e.preventDefault(); l.onClick?.(); } : undefined}
+                      target={l.href?.startsWith("http") ? "_blank" : undefined}
+                      rel={l.href?.startsWith("http") ? "noopener noreferrer" : undefined}
+                    >
                       {l.label}
                     </a>
                   </li>

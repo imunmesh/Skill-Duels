@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext';
 import { useSocket } from './context/SocketContext';
 import { Navbar } from './components/Navbar';
 import MeadowRiseFooter from './components/ui/meadow-rise-footer';
+import { FooterModals } from './components/FooterModals';
 import { AuthPage } from './pages/AuthPage';
 import { LobbyPage } from './pages/LobbyPage';
 import { MatchPage } from './pages/MatchPage';
@@ -19,6 +20,123 @@ const MatchRouteWrapper = ({ activeMatchData, onMatchFinished }) => {
   const matchPayload = activeMatchData || { matchId: id || '' };
   return <MatchPage initialMatchData={matchPayload} onMatchFinished={onMatchFinished} />;
 };
+
+// Compact one-line minimal footer for authenticated app views (Arena, Leaderboard, Profile, Admin)
+const MinimalFooter = ({ onOpenModal }) => (
+  <footer
+    style={{
+      borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+      background: 'rgba(10, 15, 22, 0.95)',
+      backdropFilter: 'blur(10px)',
+      padding: '0.85rem 1.5rem',
+      fontSize: '0.825rem',
+      color: '#94a3b8',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: '1rem',
+      position: 'relative',
+      zIndex: 10,
+    }}
+  >
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+      <span style={{ fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+        SkillDuels Arena
+      </span>
+      <span style={{ color: '#475569' }}>•</span>
+      <span>© 2026</span>
+      <span style={{ color: '#475569' }}>•</span>
+      <span style={{ color: '#cbd5e1' }}>Built with MERN + Socket.IO</span>
+    </div>
+
+    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+      <button
+        type="button"
+        onClick={() => onOpenModal('how-it-works')}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: '#cbd5e1',
+          cursor: 'pointer',
+          fontSize: '0.825rem',
+          padding: 0,
+          transition: 'color 0.2s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#ffffff')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#cbd5e1')}
+      >
+        How It Works
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenModal('badges')}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: '#cbd5e1',
+          cursor: 'pointer',
+          fontSize: '0.825rem',
+          padding: 0,
+          transition: 'color 0.2s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#ffffff')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#cbd5e1')}
+      >
+        Badges Guide
+      </button>
+      <a
+        href="https://github.com/imunmesh/Skill-Duels"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          color: '#cbd5e1',
+          textDecoration: 'none',
+          transition: 'color 0.2s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#ffffff')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#cbd5e1')}
+        aria-label="SkillDuels GitHub Repository"
+      >
+        GitHub
+      </a>
+      <button
+        type="button"
+        onClick={() => onOpenModal('privacy')}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: '#94a3b8',
+          cursor: 'pointer',
+          fontSize: '0.825rem',
+          padding: 0,
+          transition: 'color 0.2s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#ffffff')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+      >
+        Privacy Policy
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenModal('terms')}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: '#94a3b8',
+          cursor: 'pointer',
+          fontSize: '0.825rem',
+          padding: 0,
+          transition: 'color 0.2s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#ffffff')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+      >
+        Terms of Use
+      </button>
+    </div>
+  </footer>
+);
 
 export const App = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -45,6 +163,9 @@ export const App = () => {
       return null;
     }
   });
+
+  // Modal dialog state for footer informational links
+  const [activeModal, setActiveModal] = useState(null);
 
   // Listen for socket reconnection opportunities from server
   useEffect(() => {
@@ -244,47 +365,79 @@ export const App = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
+      {/* Interactive Modal Dialogs for Rules, Badges, Privacy, Terms */}
+      <FooterModals activeModal={activeModal} onClose={() => setActiveModal(null)} />
+
+      {/* Footer presentation:
+          - No footer on /match/:id (undistracted trivia view)
+          - Full MeadowRiseFooter with rich hero & 4 columns ONLY on landing/login (unauthenticated '/')
+          - Sleek one-line MinimalFooter on authenticated app pages (/arena, /profile, /leaderboard, /admin)
+      */}
       {!location.pathname.startsWith('/match') && (
-        <MeadowRiseFooter
-          name="SkillDuels"
-          brandHref="/"
-          heading={"Enter the *SkillDuels Arena*\nand dominate the leaderboards."}
-          subheading="Compete in real-time 1v1 multiplayer trivia battles across frontend, backend, and cloud stacks."
-          cta={{ label: "Enter Arena", href: isAuthenticated ? "/arena" : "/" }}
-          secondaryCta={{ label: "View Leaderboard", href: "/leaderboard" }}
-          compact={isAuthenticated && location.pathname !== '/'}
-          socialTitle="Follow us"
-          tagline="Test your speed, knowledge, and intuition. Climb the global ranks and earn elite badges."
-          preset="moonlit"
-          columns={[
-            {
-              title: "Battle Arena",
-              links: [
-                { label: "Matchmaking Lobby", href: "/arena" },
-                { label: "Global Leaderboard", href: "/leaderboard" },
-                { label: "Player Profile & Badges", href: "/profile" },
-              ],
-            },
-            {
-              title: "Duel Categories",
-              links: [
-                { label: "JavaScript & React", href: "/arena" },
-                { label: "Node.js & Backend", href: "/arena" },
-                { label: "Python & Algorithms", href: "/arena" },
-                { label: "System Design & DevOps", href: "/arena" },
-              ],
-            },
-            {
-              title: "Community & Docs",
-              links: [
-                { label: "Streak Rules & Scoring", href: "#" },
-                { label: "Admin Portal", href: "/admin" },
-                { label: "GitHub Repository", href: "https://github.com/imunmesh/Skill-Duels" },
-              ],
-            },
-          ]}
-          copyright="© 2026 SkillDuels Arena. All rights reserved."
-        />
+        !isAuthenticated && location.pathname === '/' ? (
+          <MeadowRiseFooter
+            name="SkillDuels"
+            brandHref="/"
+            heading={"Enter the *SkillDuels Arena*\nand dominate the leaderboards."}
+            subheading="Compete in real-time 1v1 multiplayer trivia battles across frontend, backend, and cloud stacks."
+            cta={{ label: "Enter Arena", href: "/" }}
+            secondaryCta={{ label: "View Leaderboard", href: "/leaderboard" }}
+            tagline="1v1 tech trivia battles. Earn XP, climb the ranks, unlock badges."
+            statLine="128 players · 1,240 duels played"
+            statAction={{ label: "Find Opponent", href: "/" }}
+            socialTitle="Follow Us"
+            socials={[
+              {
+                icon: "github",
+                href: "https://github.com/imunmesh/Skill-Duels",
+                label: "SkillDuels GitHub Repository",
+              },
+              {
+                icon: "linkedin",
+                href: "https://www.linkedin.com/in/unmesh-bhangale/",
+                label: "Unmesh Bhangale on LinkedIn",
+              },
+            ]}
+            preset="moonlit"
+            columns={[
+              {
+                title: "Battle Arena",
+                links: [
+                  { label: "Matchmaking Lobby", href: "/arena" },
+                  { label: "Global Leaderboard", href: "/leaderboard" },
+                  { label: "Weekly Rankings (FR-07)", href: "/leaderboard?tab=weekly" },
+                  { label: "Player Profile & Badges", href: "/profile" },
+                ],
+              },
+              {
+                title: "Duel Categories",
+                links: [
+                  { label: "Data Structures & Algorithms", href: "/arena?category=dsa" },
+                  { label: "Quantitative Aptitude", href: "/arena?category=aptitude" },
+                  { label: "Logical Reasoning", href: "/arena?category=logical" },
+                  { label: "Technical & CS", href: "/arena?category=technical" },
+                  { label: "Web Development", href: "/arena?category=web-dev" },
+                ],
+              },
+              {
+                title: "Resources",
+                links: [
+                  { label: "How It Works", onClick: () => setActiveModal('how-it-works'), href: "#how-it-works" },
+                  { label: "Badges Guide", onClick: () => setActiveModal('badges'), href: "#badges" },
+                  ...(user?.role === 'admin' ? [{ label: "Admin Portal", href: "/admin" }] : []),
+                  { label: "GitHub Repository", href: "https://github.com/imunmesh/Skill-Duels" },
+                ],
+              },
+            ]}
+            copyright="© 2026 SkillDuels Arena. Built with MERN + Socket.IO"
+            legal={[
+              { label: "Privacy Policy", onClick: () => setActiveModal('privacy'), href: "#privacy" },
+              { label: "Terms of Use", onClick: () => setActiveModal('terms'), href: "#terms" },
+            ]}
+          />
+        ) : (
+          <MinimalFooter onOpenModal={(modalName) => setActiveModal(modalName)} />
+        )
       )}
     </>
   );
