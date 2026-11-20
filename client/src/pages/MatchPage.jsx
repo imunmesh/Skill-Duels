@@ -2,6 +2,7 @@ import React, { useReducer, useEffect, useCallback, useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { Clock, Shield, CheckCircle2, XCircle, Zap, AlertCircle, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { getAvatarUrl } from '../utils/avatar';
 
 // Battle Reducer (FR-04, FR-05)
 const battleReducer = (state, action) => {
@@ -373,23 +374,41 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
       >
         {/* Player 1 (You) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <div
-            className="match-avatar-circle"
-            style={{
-              width: 44,
-              height: 44,
-              minWidth: 44,
-              borderRadius: '50%',
-              background: 'var(--accent-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '1.1rem',
-            }}
-          >
-            {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
-          </div>
+          {user?.avatarUrl ? (
+            <img
+              src={getAvatarUrl(user.avatarUrl)}
+              alt="Avatar"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+              style={{
+                width: 44,
+                height: 44,
+                minWidth: 44,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid #818cf8',
+              }}
+            />
+          ) : (
+            <div
+              className="match-avatar-circle"
+              style={{
+                width: 44,
+                height: 44,
+                minWidth: 44,
+                borderRadius: '50%',
+                background: 'var(--accent-gradient)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '1.1rem',
+              }}
+            >
+              {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <span className="match-user-name" style={{ fontWeight: 700, fontSize: '0.95rem' }}>{user?.username || 'You'}</span>

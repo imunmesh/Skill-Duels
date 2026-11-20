@@ -18,7 +18,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
     // Leverage compound index { role: 1, xp: -1 } for efficient scalable execution (NFR-02)
     const totalPlayers = await User.countDocuments(filter);
     const players = await User.find(filter)
-      .select('username xp rank badges stats streak createdAt')
+      .select('username displayName avatarUrl xp rank badges stats streak createdAt')
       .sort({ xp: -1, createdAt: 1 })
       .skip(skip)
       .limit(limit)
@@ -29,6 +29,8 @@ const getGlobalLeaderboard = async (req, res, next) => {
       position: skip + idx + 1,
       id: player._id,
       username: player.username,
+      displayName: player.displayName || player.username,
+      avatarUrl: player.avatarUrl || '',
       xp: player.xp || 0,
       rank: player.rank || 'Novice',
       badgesCount: (player.badges || []).length,
@@ -70,7 +72,7 @@ const getWeeklyLeaderboard = async (req, res, next) => {
     // Sort by weeklyXP descending (indexed)
     const totalPlayers = await User.countDocuments(filter);
     const players = await User.find(filter)
-      .select('username weeklyXP xp rank badges stats streak')
+      .select('username displayName avatarUrl weeklyXP xp rank badges stats streak')
       .sort({ weeklyXP: -1, xp: -1 })
       .skip(skip)
       .limit(limit)
@@ -80,8 +82,11 @@ const getWeeklyLeaderboard = async (req, res, next) => {
       position: skip + idx + 1,
       id: player._id,
       username: player.username,
+      displayName: player.displayName || player.username,
+      avatarUrl: player.avatarUrl || '',
       weeklyXP: player.weeklyXP || 0,
       totalXP: player.xp || 0,
+      xp: player.weeklyXP || 0,
       rank: player.rank || 'Novice',
       badgesCount: (player.badges || []).length,
       streak: getActiveStreak(player.streak),

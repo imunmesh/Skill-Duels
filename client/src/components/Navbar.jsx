@@ -2,6 +2,10 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { Swords, LogOut, Zap, Shield, Trophy, User as UserIcon } from 'lucide-react';
+import { LiquidNavbar } from './ui/liquid-glass-navbar';
+import { getAvatarUrl } from '../utils/avatar';
+
+const VIEW_MAP = ['arena', 'leaderboard', 'profile'];
 
 export const Navbar = ({ currentView, onNavigate }) => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -17,14 +21,23 @@ export const Navbar = ({ currentView, onNavigate }) => {
   };
 
   const userInitial = (user?.displayName || user?.username || 'U').charAt(0).toUpperCase();
+  const activeNavIndex = VIEW_MAP.indexOf(currentView);
+
+  const navItems = [
+    { label: 'Arena', icon: <Swords size={16} />, fx: 'plane' },
+    { label: 'Leaderboard', icon: <Trophy size={16} />, fx: 'glow' },
+    { label: 'Profile', icon: <UserIcon size={16} />, fx: 'wave' },
+  ];
 
   return (
     <header
       role="banner"
       style={{
-        background: 'var(--bg-secondary)',
+        background: 'rgba(15, 23, 42, 0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border-color)',
-        padding: '0.75rem 1.5rem',
+        padding: '0.65rem 1.5rem',
         position: 'sticky',
         top: 0,
         zIndex: 50,
@@ -73,6 +86,19 @@ export const Navbar = ({ currentView, onNavigate }) => {
             </span>
           )}
         </div>
+
+        {/* Center: Liquid Glass Waterline Navbar for SkillDuels */}
+        {isAuthenticated && user?.role !== 'admin' && (
+          <div className="liquid-nav-wrapper" style={{ display: 'flex', justifyContent: 'center' }}>
+            <LiquidNavbar
+              items={navItems}
+              active={activeNavIndex >= 0 ? activeNavIndex : 0}
+              onChange={(index) => onNavigate(VIEW_MAP[index])}
+              tone="dark"
+              sound={true}
+            />
+          </div>
+        )}
 
         {/* Right side controls & navigation */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -132,54 +158,49 @@ export const Navbar = ({ currentView, onNavigate }) => {
                   </div>
                 </>
               ) : (
-                /* PLAYER VIEWS (Arena, My Profile, Leaderboard, XP) */
+                /* PLAYER METRICS & CONTROLS */
                 <>
-                  {/* Arena Button */}
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('arena')}
-                    className={`btn ${currentView === 'arena' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '0.35rem 0.65rem', minHeight: 34, fontSize: '0.85rem' }}
-                    aria-label="Go to Duel Arena"
-                    title="Duel Arena"
-                  >
-                    <Swords size={15} />
-                    <span className="nav-btn-label">Arena</span>
-                  </button>
-
-                  {/* Leaderboard Button */}
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('leaderboard')}
-                    className={`btn ${currentView === 'leaderboard' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '0.35rem 0.65rem', minHeight: 34, fontSize: '0.85rem' }}
-                    aria-label="View Leaderboards"
-                    title="Leaderboards"
-                  >
-                    <Trophy size={15} />
-                    <span className="nav-btn-label">Leaderboard</span>
-                  </button>
-
-                  {/* My Profile Button with Avatar Thumbnail */}
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('profile')}
-                    className={`btn ${currentView === 'profile' ? 'btn-primary' : 'btn-secondary'}`}
+                  {/* XP Pill */}
+                  <div
                     style={{
-                      padding: '0.25rem 0.55rem 0.25rem 0.35rem',
-                      minHeight: 34,
-                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border-color)',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                    }}
+                    title={`${user.xp || 0} Total XP`}
+                  >
+                    <Zap size={13} color="#f59e0b" />
+                    <span style={{ color: '#fcd34d' }}>{user.xp || 0} XP</span>
+                  </div>
+
+                  {/* Player Avatar Chip */}
+                  <div
+                    onClick={() => onNavigate('profile')}
+                    style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.45rem',
+                      padding: '0.25rem 0.55rem 0.25rem 0.35rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: currentView === 'profile' ? 'rgba(99, 102, 241, 0.2)' : 'var(--bg-input)',
+                      border: `1px solid ${currentView === 'profile' ? '#818cf8' : 'var(--border-color)'}`,
+                      cursor: 'pointer',
                     }}
-                    aria-label="View My Profile"
-                    title="My Profile"
+                    title="View My Profile"
                   >
                     {user.avatarUrl ? (
                       <img
-                        src={user.avatarUrl}
+                        src={getAvatarUrl(user.avatarUrl)}
                         alt="Avatar"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
                         style={{
                           width: 22,
                           height: 22,
@@ -206,26 +227,9 @@ export const Navbar = ({ currentView, onNavigate }) => {
                         {userInitial}
                       </div>
                     )}
-                    <span className="nav-user-name">{user.displayName || user.username}</span>
-                  </button>
-
-                  {/* XP Pill */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      background: 'var(--bg-input)',
-                      border: '1px solid var(--border-color)',
-                      padding: '0.35rem 0.55rem',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                    }}
-                    title={`${user.xp || 0} Total XP`}
-                  >
-                    <Zap size={13} color="#f59e0b" />
-                    <span style={{ color: '#fcd34d' }}>{user.xp || 0} XP</span>
+                    <span className="nav-user-name" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                      {user.displayName || user.username}
+                    </span>
                   </div>
                 </>
               )}

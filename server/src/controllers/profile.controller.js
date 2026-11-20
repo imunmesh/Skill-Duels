@@ -196,10 +196,12 @@ const uploadAvatar = async (req, res, next) => {
     const filename = `avatar_${req.user.id}_${Date.now()}.${extension}`;
     const filePath = path.join(uploadsDir, filename);
 
-    // Write file to disk
+    // Write file to disk as backup
     fs.writeFileSync(filePath, req.file.buffer);
 
-    const avatarUrl = `/uploads/avatars/${filename}`;
+    // Save as persistent Base64 Data URL so it is stored directly in MongoDB
+    // and survives container restarts/deploys on Render ephemeral disks
+    const avatarUrl = `data:${detectedMime};base64,${req.file.buffer.toString('base64')}`;
 
     // Update user document
     const user = await User.findById(req.user.id);

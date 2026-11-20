@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { profileAPI } from '../services/api';
+import { getAvatarUrl } from '../utils/avatar';
 import {
   Camera,
   Upload,
@@ -26,7 +27,7 @@ export const ProfileSetupPage = ({ onComplete }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Avatar upload state
-  const [avatarPreview, setAvatarPreview] = useState(user?.avatarUrl || null);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatarUrl ? getAvatarUrl(user.avatarUrl) : null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [uploadError, setUploadError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -221,10 +222,25 @@ export const ProfileSetupPage = ({ onComplete }) => {
         >
           {/* Avatar Preview */}
           <div style={{ position: 'relative' }}>
+            <input
+              id="setup-avatar-file-input"
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleFileChange}
+              onClick={(e) => {
+                e.target.value = null;
+              }}
+              style={{ display: 'none' }}
+            />
             {avatarPreview ? (
               <img
-                src={avatarPreview}
+                key={avatarPreview}
+                src={getAvatarUrl(avatarPreview)}
                 alt="Avatar preview"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
                 style={{
                   width: 80,
                   height: 80,
@@ -251,9 +267,8 @@ export const ProfileSetupPage = ({ onComplete }) => {
                 {userInitial}
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+            <label
+              htmlFor="setup-avatar-file-input"
               style={{
                 position: 'absolute',
                 bottom: 0,
@@ -272,7 +287,7 @@ export const ProfileSetupPage = ({ onComplete }) => {
               aria-label="Upload profile image"
             >
               <Camera size={14} />
-            </button>
+            </label>
           </div>
 
           <div style={{ flex: 1 }}>
@@ -282,22 +297,22 @@ export const ProfileSetupPage = ({ onComplete }) => {
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.6rem' }}>
               Upload JPG, PNG, or WebP (max 2 MB). If skipped, your initials are used.
             </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+            <label
+              htmlFor="setup-avatar-file-input"
               className="btn btn-secondary"
-              style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', minHeight: 32 }}
+              style={{
+                padding: '0.35rem 0.85rem',
+                fontSize: '0.8rem',
+                minHeight: 32,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+              }}
             >
               <Upload size={14} />
               <span>Choose Image</span>
-            </button>
+            </label>
           </div>
         </div>
 

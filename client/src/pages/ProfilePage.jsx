@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { leaderboardAPI, profileAPI } from '../services/api';
+import { getAvatarUrl } from '../utils/avatar';
 import {
   User,
   Edit3,
@@ -76,6 +77,8 @@ export const ProfilePage = ({ onBackToArena }) => {
   // Avatar upload
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarImgError, setAvatarImgError] = useState(false);
+  const [viewImgError, setViewImgError] = useState(false);
   const fileInputRef = useRef(null);
 
   // Load User Progression & Stats
@@ -116,8 +119,9 @@ export const ProfilePage = ({ onBackToArena }) => {
     setDisplayName(user?.displayName || user?.username || '');
     setBio(user?.bio || '');
     setSkills(user?.skills || []);
-    setAvatarPreview(user?.avatarUrl || null);
+    setAvatarPreview(user?.avatarUrl ? getAvatarUrl(user.avatarUrl) : null);
     setAvatarFile(null);
+    setAvatarImgError(false);
     setEditError('');
     setIsEditing(true);
   };
@@ -176,7 +180,10 @@ export const ProfilePage = ({ onBackToArena }) => {
     }
 
     setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarImgError(false);
+    setEditError('');
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreview(objectUrl);
   };
 
   const handleSaveProfile = async () => {
@@ -281,10 +288,12 @@ export const ProfilePage = ({ onBackToArena }) => {
 
           {/* Avatar Upload */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem' }}>
-            {avatarPreview ? (
+            {avatarPreview && !avatarImgError ? (
               <img
-                src={avatarPreview}
+                key={avatarPreview}
+                src={getAvatarUrl(avatarPreview)}
                 alt="Avatar preview"
+                onError={() => setAvatarImgError(true)}
                 style={{
                   width: 72,
                   height: 72,
@@ -313,21 +322,32 @@ export const ProfilePage = ({ onBackToArena }) => {
             )}
             <div>
               <input
+                id="profile-avatar-file-input"
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={handleFileChange}
+                onClick={(e) => {
+                  e.target.value = null;
+                }}
                 style={{ display: 'none' }}
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
+              <label
+                htmlFor="profile-avatar-file-input"
                 className="btn btn-secondary"
-                style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', minHeight: 32 }}
+                style={{
+                  padding: '0.4rem 0.9rem',
+                  fontSize: '0.85rem',
+                  minHeight: 34,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
               >
-                <Camera size={14} />
+                <Camera size={15} />
                 <span>Change Avatar</span>
-              </button>
+              </label>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
                 JPG, PNG, or WebP &bull; Max 2 MB
               </div>
@@ -528,38 +548,66 @@ export const ProfilePage = ({ onBackToArena }) => {
         >
           {/* Avatar & Player Info */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.25rem' }}>
-            {user?.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.displayName || user.username}
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              {user?.avatarUrl && !viewImgError ? (
+                <img
+                  key={user.avatarUrl}
+                  src={getAvatarUrl(user.avatarUrl)}
+                  alt={user.displayName || user.username}
+                  onError={() => setViewImgError(true)}
+                  style={{
+                    width: 84,
+                    height: 84,
+                    borderRadius: 'var(--radius-lg)',
+                    objectFit: 'cover',
+                    border: '2px solid #818cf8',
+                    boxShadow: '0 4px 20px var(--accent-glow)',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 84,
+                    height: 84,
+                    borderRadius: 'var(--radius-lg)',
+                    background: 'var(--accent-gradient)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '2.2rem',
+                    fontWeight: 800,
+                    color: '#ffffff',
+                    boxShadow: '0 4px 20px var(--accent-glow)',
+                  }}
+                >
+                  {userInitial}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={startEditing}
+                title="Change Avatar"
+                aria-label="Change Avatar"
                 style={{
-                  width: 84,
-                  height: 84,
-                  borderRadius: 'var(--radius-lg)',
-                  objectFit: 'cover',
-                  border: '2px solid #818cf8',
-                  boxShadow: '0 4px 20px var(--accent-glow)',
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 84,
-                  height: 84,
-                  borderRadius: 'var(--radius-lg)',
-                  background: 'var(--accent-gradient)',
+                  position: 'absolute',
+                  bottom: -6,
+                  right: -6,
+                  background: '#6366f1',
+                  color: '#ffffff',
+                  border: '2px solid #0f172a',
+                  borderRadius: '50%',
+                  width: 28,
+                  height: 28,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '2.2rem',
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  boxShadow: '0 4px 20px var(--accent-glow)',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                 }}
               >
-                {userInitial}
-              </div>
-            )}
+                <Camera size={13} />
+              </button>
+            </div>
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>

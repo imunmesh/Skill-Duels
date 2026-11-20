@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 're
 import { useAuth } from './context/AuthContext';
 import { useSocket } from './context/SocketContext';
 import { Navbar } from './components/Navbar';
+import MeadowRiseFooter from './components/ui/meadow-rise-footer';
 import { AuthPage } from './pages/AuthPage';
 import { LobbyPage } from './pages/LobbyPage';
 import { MatchPage } from './pages/MatchPage';
@@ -242,6 +243,46 @@ export const App = () => {
         {/* Catch-all Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {!location.pathname.startsWith('/match') && (
+        <MeadowRiseFooter
+          name="SkillDuels"
+          brandHref="/"
+          heading={"Enter the *SkillDuels Arena*\nand dominate the leaderboards."}
+          subheading="Compete in real-time 1v1 multiplayer trivia battles across frontend, backend, and cloud stacks."
+          cta={{ label: "Enter Arena", href: isAuthenticated ? "/arena" : "/" }}
+          tagline="Test your speed, knowledge, and intuition. Climb the global ranks and earn elite badges."
+          preset="moonlit"
+          columns={[
+            {
+              title: "Battle Arena",
+              links: [
+                { label: "Matchmaking Lobby", href: "/arena" },
+                { label: "Global Leaderboard", href: "/leaderboard" },
+                { label: "Player Profile & Badges", href: "/profile" },
+              ],
+            },
+            {
+              title: "Duel Categories",
+              links: [
+                { label: "JavaScript & React", href: "/arena" },
+                { label: "Node.js & Backend", href: "/arena" },
+                { label: "Python & Algorithms", href: "/arena" },
+                { label: "System Design & DevOps", href: "/arena" },
+              ],
+            },
+            {
+              title: "Community & Docs",
+              links: [
+                { label: "Streak Rules & Scoring", href: "#" },
+                { label: "Admin Portal", href: "/admin" },
+                { label: "GitHub Repository", href: "https://github.com/imunmesh/Skill-Duels" },
+              ],
+            },
+          ]}
+          copyright="© 2026 SkillDuels Arena. All rights reserved."
+        />
+      )}
     </>
   );
 };
