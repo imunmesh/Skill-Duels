@@ -19,15 +19,75 @@ const COLOR_MAP = {
   logical: '#f59e0b',
   'web-dev': '#06b6d4',
   dsa: '#a855f7',
+  ml: '#6366f1',
 };
+
+const CANONICAL_ORDER = ['dsa', 'logical', 'ml', 'aptitude', 'technical', 'web-dev'];
+
+const CANONICAL_CATEGORIES = [
+  {
+    _id: 'dsa',
+    slug: 'dsa',
+    name: 'Data Structures &\nAlgorithms',
+    displayName: 'Data Structures & Algorithms',
+    description: 'Arrays, trees, graphs, sorting, searching, and asymptotic Big-O analysis.',
+    icon: 'Layers',
+    color: '#a855f7',
+  },
+  {
+    _id: 'logical',
+    slug: 'logical',
+    name: 'Logical Reasoning',
+    displayName: 'Logical Reasoning',
+    description: 'Sequences, patterns, deductions, syllogisms, and critical reasoning.',
+    icon: 'Brain',
+    color: '#f59e0b',
+  },
+  {
+    _id: 'ml',
+    slug: 'ml',
+    name: 'Machine learning',
+    displayName: 'Machine learning',
+    description: 'Models',
+    icon: 'Code',
+    color: '#6366f1',
+  },
+  {
+    _id: 'aptitude',
+    slug: 'aptitude',
+    name: 'Quantitative Aptitude',
+    displayName: 'Quantitative Aptitude',
+    description: 'Arithmetic, speed, distance, time, percentages, and problem solving.',
+    icon: 'Compass',
+    color: '#10b981',
+  },
+  {
+    _id: 'technical',
+    slug: 'technical',
+    name: 'Technical & CS',
+    displayName: 'Technical & CS',
+    description: 'Core computer science fundamentals, OS, memory, and programming concepts.',
+    icon: 'Code',
+    color: '#6366f1',
+  },
+  {
+    _id: 'web-dev',
+    slug: 'web-dev',
+    name: 'Web Development',
+    displayName: 'Web Development',
+    description: 'HTML5, CSS3, modern JavaScript, browser DOM, and HTTP protocols.',
+    icon: 'Globe',
+    color: '#06b6d4',
+  },
+];
 
 export const LobbyPage = ({ onMatchFound }) => {
   const { user } = useAuth();
   const { socket, connected, connectionError } = useSocket();
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get('category');
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState(CANONICAL_CATEGORIES);
+  const [selectedCategory, setSelectedCategory] = useState(categoryParam || 'dsa');
   const [isSearching, setIsSearching] = useState(false);
   const [searchTime, setSearchTime] = useState(0);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -36,13 +96,37 @@ export const LobbyPage = ({ onMatchFound }) => {
   const loadLiveCategories = useCallback(async () => {
     try {
       const res = await categoryAPI.getAll(false);
+      let catList = [...CANONICAL_CATEGORIES];
       if (res.success && res.categories?.length > 0) {
-        setCategories(res.categories);
-        const match = categoryParam && res.categories.find((c) => c.slug === categoryParam);
-        setSelectedCategory(match ? match.slug : res.categories[0].slug);
+        const dbMap = new Map(res.categories.map((c) => [c.slug, c]));
+        catList = CANONICAL_CATEGORIES.map((canonical) => {
+          const fromDb = dbMap.get(canonical.slug);
+          return fromDb ? { ...canonical, ...fromDb, name: canonical.name } : canonical;
+        });
+        res.categories.forEach((c) => {
+          if (!catList.find((item) => item.slug === c.slug)) {
+            catList.push(c);
+          }
+        });
       }
+
+      // Sort by canonical order
+      catList.sort((a, b) => {
+        const idxA = CANONICAL_ORDER.indexOf(a.slug);
+        const idxB = CANONICAL_ORDER.indexOf(b.slug);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      setCategories(catList);
+      const match = categoryParam && catList.find((c) => c.slug === categoryParam);
+      setSelectedCategory(match ? match.slug : 'dsa');
     } catch (err) {
       console.error('[Lobby] Failed to load categories from database:', err);
+      setCategories(CANONICAL_CATEGORIES);
+      setSelectedCategory(categoryParam || 'dsa');
     } finally {
       setLoadingCategories(false);
     }
@@ -114,7 +198,51 @@ export const LobbyPage = ({ onMatchFound }) => {
   };
 
   return (
-    <main className="container" style={{ maxWidth: 860, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
+    <main className="container" style={{ maxWidth: 1040, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
+      <style>{`
+        .arena-category-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1.25rem;
+        }
+        @media (max-width: 960px) {
+          .arena-category-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 580px) {
+          .arena-category-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .arena-category-card {
+          background: #131b2e;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 20px;
+          padding: 1.6rem 1.6rem 1.8rem;
+          min-height: 195px;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start;
+          text-align: left;
+          position: relative;
+          cursor: pointer;
+          outline: none;
+          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .arena-category-card:hover {
+          border-color: rgba(99, 102, 241, 0.4);
+          transform: translateY(-2px);
+        }
+        .arena-category-card.is-selected {
+          border: 2px solid #6366f1;
+          box-shadow: 0 0 25px rgba(99, 102, 241, 0.25), inset 0 0 15px rgba(99, 102, 241, 0.04);
+        }
+        .arena-category-card:focus-visible {
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5);
+        }
+      `}</style>
+
       {/* Connection Warning Banner */}
       {!connected && (
         <div className="alert alert-danger" role="alert" style={{ marginBottom: '1.5rem' }}>
@@ -220,14 +348,7 @@ export const LobbyPage = ({ onMatchFound }) => {
                 No active categories found. Please run seed script or create one in the Admin Panel.
               </div>
             ) : (
-              <div
-                className="lobby-category-grid"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                  gap: '1rem',
-                }}
-              >
+              <div className="arena-category-grid">
                 {categories.map((cat) => {
                   const Icon = ICON_MAP[cat.icon] || Code;
                   const color = COLOR_MAP[cat.slug] || '#6366f1';
@@ -235,51 +356,77 @@ export const LobbyPage = ({ onMatchFound }) => {
 
                   return (
                     <button
-                      key={cat._id}
+                      key={cat._id || cat.slug}
                       type="button"
                       onClick={() => setSelectedCategory(cat.slug)}
                       aria-pressed={isSelected}
-                      style={{
-                        background: isSelected ? 'rgba(99, 102, 241, 0.16)' : 'var(--bg-card)',
-                        border: `2px solid ${isSelected ? '#818cf8' : 'var(--border-color)'}`,
-                        borderRadius: 'var(--radius-lg)',
-                        padding: '1.25rem',
-                        textAlign: 'left',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.75rem',
-                        cursor: 'pointer',
-                        boxShadow: isSelected ? '0 0 20px rgba(99, 102, 241, 0.35)' : 'none',
-                        transition: 'all 0.2s ease',
-                      }}
+                      className={`arena-category-card ${isSelected ? 'is-selected' : ''}`}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          width: '100%',
+                          marginBottom: '1.25rem',
+                        }}
+                      >
                         <div
                           style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 'var(--radius-md)',
-                            background: `${color}20`,
-                            border: `1px solid ${color}40`,
+                            width: 48,
+                            height: 48,
+                            borderRadius: 14,
+                            background: `${color}18`,
+                            border: `1px solid ${color}35`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: color,
+                            flexShrink: 0,
                           }}
                         >
-                          <Icon size={20} />
+                          <Icon size={24} strokeWidth={2} />
                         </div>
+
                         {isSelected && (
-                          <span style={{ color: '#818cf8', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 700 }}>
-                            <CheckCircle2 size={16} /> Selected
-                          </span>
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              color: '#818cf8',
+                              fontSize: '0.92rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            <CheckCircle2 size={18} strokeWidth={2.2} />
+                            <span>Selected</span>
+                          </div>
                         )}
                       </div>
+
                       <div>
-                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', marginBottom: '0.25rem' }}>
+                        <h3
+                          style={{
+                            fontSize: '1.2rem',
+                            fontWeight: 700,
+                            color: '#ffffff',
+                            marginBottom: '0.45rem',
+                            letterSpacing: '-0.01em',
+                            lineHeight: 1.25,
+                            whiteSpace: 'pre-line',
+                          }}
+                        >
                           {cat.name}
                         </h3>
-                        <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        <p
+                          style={{
+                            fontSize: '0.88rem',
+                            color: '#94a3b8',
+                            lineHeight: 1.45,
+                            margin: 0,
+                          }}
+                        >
                           {cat.description || 'Skill domain questions.'}
                         </p>
                       </div>

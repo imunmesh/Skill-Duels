@@ -41,6 +41,12 @@ const CATEGORIES_DATA = [
     description: 'Arrays, trees, graphs, sorting, searching, and asymptotic Big-O analysis.',
     icon: 'Layers',
   },
+  {
+    name: 'Machine learning',
+    slug: 'ml',
+    description: 'Models',
+    icon: 'Code',
+  },
 ];
 
 const QUESTIONS_DATA = {
@@ -104,6 +110,18 @@ const QUESTIONS_DATA = {
     { text: 'Which string pattern matching algorithm uses a computed prefix table (pi array)?', options: ['Boyer-Moore', 'KMP (Knuth-Morris-Pratt)', 'Rabin-Karp', 'Aho-Corasick'], correctIndex: 1, difficulty: 'hard' },
     { text: 'What is the amortized insertion time complexity for a dynamic resizing array?', options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'], correctIndex: 0, difficulty: 'hard' },
   ],
+  ml: [
+    { text: 'Which algorithm is commonly used for classification by finding the maximum-margin hyperplane?', options: ['Linear Regression', 'Support Vector Machine (SVM)', 'K-Means', 'Apriori'], correctIndex: 1, difficulty: 'easy' },
+    { text: 'What problem occurs when a machine learning model fits training noise and generalizes poorly?', options: ['Underfitting', 'Overfitting', 'High Bias', 'Vanishing Gradient'], correctIndex: 1, difficulty: 'easy' },
+    { text: 'Which activation function outputs values constrained between 0 and 1?', options: ['ReLU', 'Sigmoid', 'Leaky ReLU', 'Step function'], correctIndex: 1, difficulty: 'easy' },
+    { text: 'In supervised learning, what does the training dataset consist of?', options: ['Only input features without labels', 'Input features paired with corresponding target labels', 'Unlabeled clusters', 'Reward signals only'], correctIndex: 1, difficulty: 'easy' },
+    { text: 'Which loss function is standard for evaluating binary classification models?', options: ['Mean Squared Error', 'Binary Cross-Entropy', 'Huber Loss', 'Hinge Loss'], correctIndex: 1, difficulty: 'medium' },
+    { text: 'What is the primary role of the validation set during neural network training?', options: ['Update model weights directly', 'Tune hyperparameters and monitor overfitting', 'Final real-world test evaluation', 'Data preprocessing'], correctIndex: 1, difficulty: 'medium' },
+    { text: 'Which dimensionality reduction technique finds orthogonal axes of maximal variance?', options: ['K-Means', 'PCA (Principal Component Analysis)', 'DBSCAN', 'Word2Vec'], correctIndex: 1, difficulty: 'medium' },
+    { text: 'What does the term "Dropout" refer to in deep neural networks?', options: ['Stopping training early', 'Randomly deactivating neurons during training to prevent co-adaptation', 'Removing redundant training samples', 'Zeroing weights during inference'], correctIndex: 1, difficulty: 'medium' },
+    { text: 'Which optimization algorithm adapts individual learning rates using first and second moments of gradients?', options: ['SGD with Momentum', 'Adam', 'AdaGrad', 'RMSProp'], correctIndex: 1, difficulty: 'hard' },
+    { text: 'What mechanism allows Transformer architectures to weigh the relevance of each input token relative to all others?', options: ['Convolutional filters', 'Self-Attention mechanism', 'Recurrent cell gating', 'Max-pooling'], correctIndex: 1, difficulty: 'hard' },
+  ],
 };
 
 const seedDatabase = async () => {
@@ -132,6 +150,91 @@ const seedDatabase = async () => {
     } else {
       console.log(`[Seed] Admin already exists: ${adminUser.username}`);
     }
+
+    // Seed Demo/Default Players matching Leaderboard
+    console.log('[Seed] Seeding Leaderboard Challengers...');
+    const playerHash = await bcrypt.hash('Player123!', saltRounds);
+    const DEMO_PLAYERS = [
+      {
+        username: 'ava_turner',
+        displayName: 'Ava Elizabeth Turner',
+        email: 'ava@skillduels.com',
+        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+        role: 'player',
+        xp: 289400,
+        weeklyXP: 289400,
+        rank: 'Diamond',
+        stats: { matchesPlayed: 48, matchesWon: 42 },
+        streak: { current: 12, highest: 15 },
+      },
+      {
+        username: 'leo_harrison',
+        displayName: 'Leo Harrison',
+        email: 'leo@skillduels.com',
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        role: 'player',
+        xp: 251800,
+        weeklyXP: 251800,
+        rank: 'Platinum',
+        stats: { matchesPlayed: 41, matchesWon: 35 },
+        streak: { current: 8, highest: 10 },
+      },
+      {
+        username: 'rowan_elijah',
+        displayName: 'Rowan Elijah',
+        email: 'rowan@skillduels.com',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        role: 'player',
+        xp: 238300,
+        weeklyXP: 238300,
+        rank: 'Gold',
+        stats: { matchesPlayed: 39, matchesWon: 31 },
+        streak: { current: 6, highest: 9 },
+      },
+      {
+        username: 'maya_chen',
+        displayName: 'Maya Chen',
+        email: 'maya@skillduels.com',
+        avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+        role: 'player',
+        xp: 198700,
+        weeklyXP: 198700,
+        rank: 'Silver',
+        stats: { matchesPlayed: 32, matchesWon: 24 },
+        streak: { current: 4, highest: 7 },
+      },
+      {
+        username: 'player1',
+        displayName: 'Player One',
+        email: 'player1@skillduels.com',
+        role: 'player',
+        xp: 156200,
+        weeklyXP: 156200,
+        rank: 'Bronze',
+        stats: { matchesPlayed: 25, matchesWon: 18 },
+        streak: { current: 3, highest: 5 },
+      },
+      {
+        username: 'player2',
+        displayName: 'Player Two',
+        email: 'player2@skillduels.com',
+        role: 'player',
+        xp: 120500,
+        weeklyXP: 120500,
+        rank: 'Bronze',
+        stats: { matchesPlayed: 20, matchesWon: 14 },
+        streak: { current: 2, highest: 4 },
+      },
+    ];
+
+    for (const p of DEMO_PLAYERS) {
+      await User.findOneAndUpdate(
+        { email: p.email },
+        { ...p, passwordHash: playerHash },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+    console.log(`[Seed] Seeded ${DEMO_PLAYERS.length} demo players.`);
 
     // 2. Seed Categories
     console.log('[Seed] Seeding Categories...');

@@ -209,30 +209,26 @@ export default function PodiumLeaderboard({
           position: absolute;
           bottom: -2px;
           right: -2px;
-          width: 20px;
-          height: 20px;
+          width: 22px;
+          height: 22px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 2px solid #121417;
+          background: #141619;
+          border: 1.5px solid #23272f;
         }
 
         .plb-crown-badge.gold {
-          background: #d97706;
-          color: #fef08a;
-          box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+          color: #f59e0b;
         }
 
         .plb-crown-badge.silver {
-          background: #475569;
-          color: #f1f5f9;
+          color: #94a3b8;
         }
 
         .plb-crown-badge.bronze {
-          background: #9a3412;
-          color: #ffedd5;
-          box-shadow: 0 0 8px rgba(154, 52, 18, 0.4);
+          color: #ea580c;
         }
 
         .plb-podium-name {
@@ -271,23 +267,26 @@ export default function PodiumLeaderboard({
 
         /* 1st Place Pillar (Gold) */
         .plb-pedestal.gold {
-          height: 155px;
-          background: linear-gradient(180deg, #d97706 0%, #b45309 60%, #78350f 100%);
-          color: #fef08a;
+          height: 160px;
+          background: #ba8020;
+          color: #fde047;
+          border-radius: 14px 14px 0 0;
         }
 
         /* 2nd Place Pillar (Silver) */
         .plb-pedestal.silver {
-          height: 110px;
-          background: linear-gradient(180deg, #64748b 0%, #475569 60%, #334155 100%);
-          color: #f1f5f9;
+          height: 115px;
+          background: #373d47;
+          color: #808d9e;
+          border-radius: 14px 14px 0 0;
         }
 
-        /* 3rd Place Pillar (Bronze - Distinct Reddish Copper) */
+        /* 3rd Place Pillar (Bronze - Distinct Warm Bronze) */
         .plb-pedestal.bronze {
           height: 82px;
-          background: linear-gradient(180deg, #9a3412 0%, #7c2d12 60%, #431407 100%);
-          color: #ffedd5;
+          background: #783b1a;
+          color: #ea7a3b;
+          border-radius: 14px 14px 0 0;
         }
 
         .plb-search-wrap {
@@ -727,17 +726,19 @@ export default function PodiumLeaderboard({
                   <span className="plb-row-rank-num">{player.position}</span>
                   {player.position === 1 ? (
                     <span className="plb-row-crown" style={{ color: "#f59e0b" }}>
-                      <Crown size={15} />
+                      <Crown size={15} strokeWidth={1.8} />
                     </span>
                   ) : player.position === 2 ? (
                     <span className="plb-row-crown" style={{ color: "#94a3b8" }}>
-                      <Crown size={15} />
+                      <Crown size={15} strokeWidth={1.8} />
                     </span>
                   ) : player.position === 3 ? (
-                    <span className="plb-row-crown" style={{ color: "#d97706" }}>
-                      <Crown size={15} />
+                    <span className="plb-row-crown" style={{ color: "#ea580c" }}>
+                      <Crown size={15} strokeWidth={1.8} />
                     </span>
-                  ) : null}
+                  ) : (
+                    <span style={{ width: 15, display: "inline-block" }} />
+                  )}
                   {tied && <span className="plb-tied-chip">tied</span>}
                 </div>
 
