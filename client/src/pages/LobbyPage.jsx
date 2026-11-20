@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { categoryAPI } from '../services/api';
-import { Swords, Code, Brain, Compass, Globe, Layers, Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Swords, Code, Brain, Compass, Globe, Layers, Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import InfoCard from '../components/ui/info-card';
 
 const ICON_MAP = {
   Code,
@@ -355,82 +356,15 @@ export const LobbyPage = ({ onMatchFound }) => {
                   const isSelected = selectedCategory === cat.slug;
 
                   return (
-                    <button
+                    <InfoCard
                       key={cat._id || cat.slug}
-                      type="button"
+                      title={cat.name}
+                      description={cat.description || 'Skill domain questions.'}
+                      icon={<Icon size={24} strokeWidth={2} />}
+                      iconColor={color}
+                      selected={isSelected}
                       onClick={() => setSelectedCategory(cat.slug)}
-                      aria-pressed={isSelected}
-                      className={`arena-category-card ${isSelected ? 'is-selected' : ''}`}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          width: '100%',
-                          marginBottom: '1.25rem',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 14,
-                            background: `${color}18`,
-                            border: `1px solid ${color}35`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: color,
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Icon size={24} strokeWidth={2} />
-                        </div>
-
-                        {isSelected && (
-                          <div
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              color: '#818cf8',
-                              fontSize: '0.92rem',
-                              fontWeight: 600,
-                            }}
-                          >
-                            <CheckCircle2 size={18} strokeWidth={2.2} />
-                            <span>Selected</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div>
-                        <h3
-                          style={{
-                            fontSize: '1.2rem',
-                            fontWeight: 700,
-                            color: '#ffffff',
-                            marginBottom: '0.45rem',
-                            letterSpacing: '-0.01em',
-                            lineHeight: 1.25,
-                            whiteSpace: 'pre-line',
-                          }}
-                        >
-                          {cat.name}
-                        </h3>
-                        <p
-                          style={{
-                            fontSize: '0.88rem',
-                            color: '#94a3b8',
-                            lineHeight: 1.45,
-                            margin: 0,
-                          }}
-                        >
-                          {cat.description || 'Skill domain questions.'}
-                        </p>
-                      </div>
-                    </button>
+                    />
                   );
                 })}
               </div>

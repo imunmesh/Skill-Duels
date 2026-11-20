@@ -1,113 +1,78 @@
-import React from "react";
-import { InfoCard } from "@/components/ui/info-card";
+import React, { useState } from "react";
+import InfoCard from "@/components/ui/info-card";
+import { Layers, Brain, Code, Compass, Globe } from "lucide-react";
 
-const containerStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 24,
-  padding: 24,
-  flexWrap: "wrap",
-  justifyContent: "center",
-  alignItems: "flex-start",
-  background: "none",
-  fontFamily: "var(--font-family)",
-  margin: 0,
-};
+export default function InfoCardDemo() {
+  const [selected, setSelected] = useState<string>("dsa");
 
-const fileContainerStyle: React.CSSProperties = {
-  width: 388,
-  height: 378,
-  borderRadius: "1em",
-  position: "relative",
-  overflow: "hidden",
-  padding: 0,
-  cursor: "pointer",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  background: "none",
-  boxSizing: "border-box",
-};
+  const categories = [
+    {
+      id: "dsa",
+      title: "Data Structures &\nAlgorithms",
+      description: "Arrays, trees, graphs, sorting, searching, and asymptotic Big-O analysis.",
+      icon: <Layers size={24} strokeWidth={2} />,
+      iconColor: "#a855f7",
+    },
+    {
+      id: "logical",
+      title: "Logical Reasoning",
+      description: "Sequences, patterns, deductions, syllogisms, and critical reasoning.",
+      icon: <Brain size={24} strokeWidth={2} />,
+      iconColor: "#f59e0b",
+    },
+    {
+      id: "ml",
+      title: "Machine learning",
+      description: "Models",
+      icon: <Code size={24} strokeWidth={2} />,
+      iconColor: "#6366f1",
+    },
+    {
+      id: "aptitude",
+      title: "Quantitative Aptitude",
+      description: "Arithmetic, speed, distance, time, percentages, and problem solving.",
+      icon: <Compass size={24} strokeWidth={2} />,
+      iconColor: "#10b981",
+    },
+    {
+      id: "technical",
+      title: "Technical & CS",
+      description: "Core computer science fundamentals, OS, memory, and programming concepts.",
+      icon: <Code size={24} strokeWidth={2} />,
+      iconColor: "#6366f1",
+    },
+    {
+      id: "web-dev",
+      title: "Web Development",
+      description: "HTML5, CSS3, modern JavaScript, browser DOM, and HTTP protocols.",
+      icon: <Globe size={24} strokeWidth={2} />,
+      iconColor: "#06b6d4",
+    },
+  ];
 
-export const Demo: React.FC = () => (
-  <div className="container" style={containerStyle}>
-    <div
-      className="file-container"
-      id="container1"
-      style={{
-        ...fileContainerStyle,
-        ["--hover-text-color" as any]: "#242424",
-      }}
-    >
-      <InfoCard
-        image="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80"
-        title="American English"
-        description="Master American English efficiently with personalized lessons, cultural insights, and practical exercises."
-        borderColor="var(--border-color-1)"
-        borderBgColor="var(--border-bg-color)"
-        cardBgColor="var(--card-bg-color)"
-        shadowColor="var(--shadow-color)"
-        textColor="var(--text-color)"
-        hoverTextColor="var(--hover-text-color-1)"
-        fontFamily="var(--font-family)"
-        rtlFontFamily="var(--rtl-font-family)"
-        effectBgColor="var(--border-color-1)"
-        patternColor1="var(--pattern-color1)"
-        patternColor2="var(--pattern-color2)"
-        contentPadding="14.3px 16px"
-      />
+  return (
+    <div style={{ minHeight: "100vh", background: "#0b101b", padding: "40px 20px" }}>
+      <div style={{ maxWidth: 1040, margin: "0 auto" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "1.25rem",
+          }}
+        >
+          {categories.map((cat) => (
+            <InfoCard
+              key={cat.id}
+              title={cat.title}
+              description={cat.description}
+              icon={cat.icon}
+              iconColor={cat.iconColor}
+              selected={selected === cat.id}
+              onClick={() => setSelected(cat.id)}
+            />
+          ))}
+        </div>
+      </div>
     </div>
-    <div
-      className="file-container"
-      id="container2"
-      style={{
-        ...fileContainerStyle,
-        ["--hover-text-color" as any]: "#fff",
-      }}
-    >
-      <InfoCard
-        image="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=600&q=80"
-        title="British English"
-        description="Explore British English nuances, from pronunciation to idioms and dialect-specific words."
-        borderColor="var(--border-color-2)"
-        borderBgColor="var(--border-bg-color)"
-        cardBgColor="var(--card-bg-color)"
-        shadowColor="var(--shadow-color)"
-        textColor="var(--text-color)"
-        hoverTextColor="var(--hover-text-color-2)"
-        fontFamily="var(--font-family)"
-        rtlFontFamily="var(--rtl-font-family)"
-        effectBgColor="var(--border-color-2)"
-        patternColor1="var(--pattern-color1)"
-        patternColor2="var(--pattern-color2)"
-        contentPadding="14.3px 16px"
-      />
-    </div>
-    <div
-      className="file-container"
-      id="container3"
-      style={{
-        ...fileContainerStyle,
-        ["--hover-text-color" as any]: "#2196F3",
-      }}
-    >
-      <InfoCard
-        image="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80"
-        title="עברית"
-        description="לימוד השפה העברית המודרנית, דקדוק ואוצר מילים. שיפור מיומנויות דיבור וכתיבה, חקירת ספרות עברית. הכרת תרבות ישראלית, מנהגים והיסטוריה."
-        borderColor="var(--border-color-3)"
-        borderBgColor="var(--border-bg-color)"
-        cardBgColor="var(--card-bg-color)"
-        shadowColor="var(--shadow-color)"
-        textColor="var(--text-color)"
-        hoverTextColor="var(--hover-text-color-3)"
-        fontFamily="var(--font-family)"
-        rtlFontFamily="var(--rtl-font-family)"
-        effectBgColor="var(--border-color-3)"
-        patternColor1="var(--pattern-color1)"
-        patternColor2="var(--pattern-color2)"
-      />
-    </div>
-  </div>
-);
-
-export default Demo;
+  );
+}
