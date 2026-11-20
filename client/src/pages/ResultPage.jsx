@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles, TrendingUp } from 'lucide-react';
+import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles } from 'lucide-react';
 import { RankUpModal } from '../components/ui/rank-up-modal';
 
 export const ResultPage = ({ matchResult, onPlayAgain }) => {
@@ -18,23 +18,20 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
   const [modalOldRank, setModalOldRank] = useState(playerResult?.oldRank || 'Silver');
   const [modalNewRank, setModalNewRank] = useState(playerResult?.newRank || 'Gold');
 
-  // Sync profile XP locally & auto-trigger Rank Up if achieved
+  // Automatically trigger the Rank Up animation directly without requiring preview tabs/buttons
   useEffect(() => {
     if (playerResult?.newTotalXP) {
       updateProfileXP(playerResult.newTotalXP);
     }
-    if (playerResult?.isRankUp) {
-      setModalOldRank(playerResult.oldRank || 'Silver');
-      setModalNewRank(playerResult.newRank || 'Gold');
-      setIsRankUpOpen(true);
+    if (playerResult?.isRankUp || !matchResult) {
+      setModalOldRank(playerResult?.oldRank || 'Silver');
+      setModalNewRank(playerResult?.newRank || 'Gold');
+      const timer = setTimeout(() => {
+        setIsRankUpOpen(true);
+      }, 350);
+      return () => clearTimeout(timer);
     }
-  }, [playerResult, updateProfileXP]);
-
-  const handlePreviewRankUp = (from = 'Silver', to = 'Gold') => {
-    setModalOldRank(from);
-    setModalNewRank(to);
-    setIsRankUpOpen(true);
-  };
+  }, [playerResult, matchResult, updateProfileXP]);
 
   return (
     <main className="container" style={{ maxWidth: 720, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
@@ -169,6 +166,7 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
               border: '1px solid rgba(245, 158, 11, 0.3)',
               borderRadius: 'var(--radius-md)',
               padding: '0.85rem 1.75rem',
+              marginBottom: '2.5rem',
             }}
           >
             <Zap size={22} color="#f59e0b" />
@@ -181,26 +179,6 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
               </div>
             </div>
           </div>
-
-          {/* Interactive Rank-Up Animation Preview Button */}
-          <button
-            type="button"
-            onClick={() => handlePreviewRankUp('Silver', 'Gold')}
-            className="btn btn-secondary"
-            style={{
-              padding: '0.45rem 1rem',
-              fontSize: '0.85rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              borderColor: 'rgba(245, 158, 11, 0.4)',
-              color: '#fcd34d',
-            }}
-            title="Preview rank-up animation effect"
-          >
-            <TrendingUp size={15} color="#f59e0b" />
-            <span>✨ Preview Rank Up Animation (Silver ➔ Gold)</span>
-          </button>
         </div>
 
         {/* Action Button */}
