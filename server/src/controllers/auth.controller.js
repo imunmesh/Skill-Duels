@@ -75,14 +75,14 @@ const register = async (req, res, next) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // 4. Create and persist user (User schema defaults handle xp: 0, rank: 'Novice', badges: [])
+    // 4. Create and persist user (User schema defaults handle xp: 0, rank: 'Bronze', badges: [])
     const newUser = await User.create({
       username: username.trim(),
       email: email.toLowerCase().trim(),
       passwordHash,
       role: assignedRole,
       xp: 0,
-      rank: 'Novice',
+      rank: 'Bronze',
       badges: [],
     });
 

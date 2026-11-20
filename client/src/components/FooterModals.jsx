@@ -189,10 +189,12 @@ export const FooterModals = ({ activeModal, onClose }) => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
               {[
-                { name: 'First Duel', icon: '⚔️', desc: 'Participate in your very first live 1v1 battle match.' },
+                { name: 'First Duel', icon: '⚔️', desc: 'Participate in your very first live 1v1 battle match (Bronze Tier).' },
                 { name: 'Speed Demon', icon: '⚡', desc: 'Lock in a correct answer within 3 seconds of the timer start.' },
-                { name: 'Code Warrior', icon: '🛡️', desc: 'Win 5 competitive duel matches across any category.' },
-                { name: 'Grandmaster', icon: '👑', desc: 'Achieve 25 duel victories and dominate the global rankings.' },
+                { name: 'Gold Gladiator', icon: '🥇', desc: 'Attain Gold rank with 300+ XP across competitive duels.' },
+                { name: 'Diamond Master', icon: '💎', desc: 'Surpass 1,000+ XP and conquer Diamond tier lobbies.' },
+                { name: 'Ace Champion', icon: '⚡', desc: 'Reach 2,000+ XP and claim the elite Ace rank.' },
+                { name: 'Conqueror Supreme', icon: '👑', desc: 'Ascend to the highest echelon (3,500+ XP) — True Conqueror.' },
                 { name: 'Streak Master', icon: '🔥', desc: 'Maintain an active daily duel streak for 5 consecutive days.' },
                 { name: 'Moderator', icon: '🌟', desc: 'Platform Administrator credential badge for certified moderators.' },
               ].map((badge, idx) => (

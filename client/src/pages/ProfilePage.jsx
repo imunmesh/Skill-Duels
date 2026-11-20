@@ -241,7 +241,7 @@ export const ProfilePage = ({ onBackToArena }) => {
 
   const p = profileData || {
     xp: user?.xp || 0,
-    rank: user?.rank || 'Novice',
+    rank: user?.rank || 'Bronze',
     globalPosition: 1,
     xpToNextRank: 100,
     rankProgressPercent: 25,

@@ -125,7 +125,7 @@ const seedDatabase = async () => {
         passwordHash: adminHash,
         role: 'admin',
         xp: 1500,
-        rank: 'Grandmaster',
+        rank: 'Conqueror',
         badges: [{ badgeId: 'admin_badge', name: 'Moderator', description: 'Platform Administrator' }],
       });
       console.log(`[Seed] Created admin: ${adminUser.username}`);

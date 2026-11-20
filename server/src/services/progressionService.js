@@ -4,12 +4,13 @@ const Match = require('../models/Match');
 
 // Rank Thresholds (FR-02, AC-04)
 const RANK_TIERS = [
-  { name: 'Grandmaster', minXP: 2000, icon: '👑' },
-  { name: 'Master', minXP: 1000, icon: '💎' },
-  { name: 'Veteran', minXP: 600, icon: '⚔️' },
-  { name: 'Warrior', minXP: 300, icon: '🛡️' },
-  { name: 'Apprentice', minXP: 100, icon: '📜' },
-  { name: 'Novice', minXP: 0, icon: '🌱' },
+  { name: 'Conqueror', minXP: 3500, icon: '👑', color: '#f43f5e' },
+  { name: 'Ace', minXP: 2000, icon: '⚡', color: '#a855f7' },
+  { name: 'Diamond', minXP: 1000, icon: '💎', color: '#06b6d4' },
+  { name: 'Platinum', minXP: 600, icon: '💠', color: '#10b981' },
+  { name: 'Gold', minXP: 300, icon: '🥇', color: '#f59e0b' },
+  { name: 'Silver', minXP: 100, icon: '🥈', color: '#94a3b8' },
+  { name: 'Bronze', minXP: 0, icon: '🥉', color: '#cd7f32' },
 ];
 
 /**
@@ -23,7 +24,7 @@ const calculateRank = (xp) => {
       return tier.name;
     }
   }
-  return 'Novice';
+  return 'Bronze';
 };
 
 /**
@@ -74,26 +75,38 @@ const AVAILABLE_BADGES = {
   },
   centurion: {
     badgeId: 'centurion',
-    name: 'Centurion',
-    description: 'Accumulated 100 or more lifetime XP',
+    name: 'Silver Centurion',
+    description: 'Accumulated 100 or more lifetime XP and reached Silver tier',
     icon: 'shield',
+  },
+  gold: {
+    badgeId: 'gold',
+    name: 'Gold Gladiator',
+    description: 'Attained Gold rank with 300+ XP',
+    icon: 'trophy',
   },
   veteran: {
     badgeId: 'veteran',
-    name: 'Veteran Duelist',
-    description: 'Attained Veteran rank with 600+ XP',
+    name: 'Platinum Duelist',
+    description: 'Attained Platinum rank with 600+ XP',
     icon: 'medal',
   },
   master: {
     badgeId: 'master',
     name: 'Diamond Master',
-    description: 'Surpassed 1,000+ XP and dominated competitive lobbies',
+    description: 'Surpassed 1,000+ XP and dominated Diamond lobbies',
     icon: 'diamond',
+  },
+  ace: {
+    badgeId: 'ace',
+    name: 'Ace Champion',
+    description: 'Reached 2,000+ XP and earned the prestigious Ace tier',
+    icon: 'zap',
   },
   grandmaster: {
     badgeId: 'grandmaster',
-    name: 'Grandmaster Champion',
-    description: 'Ascended to the highest echelon with 2,000+ XP',
+    name: 'Conqueror Supreme',
+    description: 'Ascended to the highest echelon (3,500+ XP) — True Conqueror',
     icon: 'crown',
   },
 };
@@ -171,8 +184,8 @@ const processMatchProgression = async ({
   }
 
   const results = {
-    [player1.userId]: { xpAwarded: p1BaseXP, streakBonus: 0, newTotalXP: p1BaseXP, rank: 'Novice', newBadges: [] },
-    [player2.userId]: { xpAwarded: p2BaseXP, streakBonus: 0, newTotalXP: p2BaseXP, rank: 'Novice', newBadges: [] },
+    [player1.userId]: { xpAwarded: p1BaseXP, streakBonus: 0, newTotalXP: p1BaseXP, rank: 'Bronze', newBadges: [] },
+    [player2.userId]: { xpAwarded: p2BaseXP, streakBonus: 0, newTotalXP: p2BaseXP, rank: 'Bronze', newBadges: [] },
   };
 
   // If MongoDB is offline, return basic memory representation
@@ -244,9 +257,11 @@ const processMatchProgression = async ({
       if (currentStreak >= 3) checkAndAwardBadge('streak_3');
       if (currentStreak >= 7) checkAndAwardBadge('streak_7');
       if (newTotalXP >= 100) checkAndAwardBadge('centurion');
+      if (newTotalXP >= 300) checkAndAwardBadge('gold');
       if (newTotalXP >= 600) checkAndAwardBadge('veteran');
       if (newTotalXP >= 1000) checkAndAwardBadge('master');
-      if (newTotalXP >= 2000) checkAndAwardBadge('grandmaster');
+      if (newTotalXP >= 2000) checkAndAwardBadge('ace');
+      if (newTotalXP >= 3500) checkAndAwardBadge('grandmaster');
 
       // Check flawless victory (won and all questions answered correctly)
       const answersList = item.p.answers ? Object.values(item.p.answers) : [];

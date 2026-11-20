@@ -143,7 +143,7 @@ export const LeaderboardPage = ({ onBackToArena }) => {
                   {user?.displayName || user?.username}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  {user?.rank || 'Novice'} &bull; <strong style={{ color: '#818cf8' }}>Rank #{myEntry?.position || '—'}</strong>
+                  {user?.rank || 'Bronze'} &bull; <strong style={{ color: '#818cf8' }}>Rank #{myEntry?.position || '—'}</strong>
                 </div>
               </div>
             </div>

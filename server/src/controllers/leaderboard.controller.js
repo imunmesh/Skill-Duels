@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Match = require('../models/Match');
-const { RANK_TIERS, AVAILABLE_BADGES, getActiveStreak } = require('../services/progressionService');
+const { RANK_TIERS, AVAILABLE_BADGES, getActiveStreak, calculateRank } = require('../services/progressionService');
 
 /**
  * @desc    Get Global Leaderboard ranked by XP (FR-06, AC-05, NFR-02)
@@ -32,7 +32,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
       displayName: player.displayName || player.username,
       avatarUrl: player.avatarUrl || '',
       xp: player.xp || 0,
-      rank: player.rank || 'Novice',
+      rank: calculateRank(player.xp || 0),
       badgesCount: (player.badges || []).length,
       matchesPlayed: player.stats?.matchesPlayed || 0,
       matchesWon: player.stats?.matchesWon || 0,
@@ -87,7 +87,7 @@ const getWeeklyLeaderboard = async (req, res, next) => {
       weeklyXP: player.weeklyXP || 0,
       totalXP: player.xp || 0,
       xp: player.weeklyXP || 0,
-      rank: player.rank || 'Novice',
+      rank: calculateRank(player.xp || 0),
       badgesCount: (player.badges || []).length,
       matchesPlayed: player.stats?.matchesPlayed || 0,
       matchesWon: player.stats?.matchesWon || 0,
@@ -179,7 +179,7 @@ const getUserProgression = async (req, res, next) => {
         role: user.role,
         xp: user.xp,
         weeklyXP: user.weeklyXP,
-        rank: user.rank,
+        rank: calculateRank(user.xp || 0),
         globalPosition: globalRankPosition,
         currentTier,
         nextTier,
@@ -279,8 +279,8 @@ const getPublicLeaderboard = async (req, res, next) => {
       displayName: player.displayName || player.username,
       avatarUrl: player.avatarUrl || '',
       xp: type === 'weekly' ? player.weeklyXP || 0 : player.xp || 0,
-      rank: player.rank || 'Novice',
-      tier: player.rank || 'Novice',
+      rank: calculateRank(player.xp || 0),
+      tier: calculateRank(player.xp || 0),
       winRate:
         player.stats?.matchesPlayed > 0
           ? Math.round((player.stats.matchesWon / player.stats.matchesPlayed) * 100)

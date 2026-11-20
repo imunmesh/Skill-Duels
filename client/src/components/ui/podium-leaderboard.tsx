@@ -714,7 +714,7 @@ export default function PodiumLeaderboard({
               String(player.id) === String(currentUserId);
             const score = player.xp || player.weeklyXP || 0;
             const level = calculateLevel(player.totalXP || player.xp || 0);
-            const tier = player.rank || "Novice";
+            const tier = player.rank || "Bronze";
             const tied = checkTie(idx, filteredPlayers);
 
             return (

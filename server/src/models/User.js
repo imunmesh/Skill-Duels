@@ -99,7 +99,7 @@ const UserSchema = new mongoose.Schema(
     },
     rank: {
       type: String,
-      default: 'Novice',
+      default: 'Bronze',
       trim: true,
       index: true,
     },

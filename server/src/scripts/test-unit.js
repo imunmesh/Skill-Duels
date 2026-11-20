@@ -34,29 +34,33 @@ function runTest(name, fn) {
 // ----------------------------------------------------
 console.log('1. Rank Tier & XP Calculation:');
 
-runTest('0 XP should return Novice tier', () => {
-  assert.strictEqual(calculateRank(0), 'Novice');
+runTest('0 XP should return Bronze tier', () => {
+  assert.strictEqual(calculateRank(0), 'Bronze');
 });
 
-runTest('100 XP should return Apprentice tier', () => {
-  assert.strictEqual(calculateRank(100), 'Apprentice');
+runTest('100 XP should return Silver tier', () => {
+  assert.strictEqual(calculateRank(100), 'Silver');
 });
 
-runTest('300 XP should return Warrior tier', () => {
-  assert.strictEqual(calculateRank(300), 'Warrior');
+runTest('300 XP should return Gold tier', () => {
+  assert.strictEqual(calculateRank(300), 'Gold');
 });
 
-runTest('600 XP should return Veteran tier', () => {
-  assert.strictEqual(calculateRank(600), 'Veteran');
+runTest('600 XP should return Platinum tier', () => {
+  assert.strictEqual(calculateRank(600), 'Platinum');
 });
 
-runTest('1000 XP should return Master tier', () => {
-  assert.strictEqual(calculateRank(1000), 'Master');
+runTest('1000 XP should return Diamond tier', () => {
+  assert.strictEqual(calculateRank(1000), 'Diamond');
 });
 
-runTest('2000+ XP should return Grandmaster tier', () => {
-  assert.strictEqual(calculateRank(2000), 'Grandmaster');
-  assert.strictEqual(calculateRank(5000), 'Grandmaster');
+runTest('2000 XP should return Ace tier', () => {
+  assert.strictEqual(calculateRank(2000), 'Ace');
+});
+
+runTest('3500+ XP should return Conqueror tier', () => {
+  assert.strictEqual(calculateRank(3500), 'Conqueror');
+  assert.strictEqual(calculateRank(5000), 'Conqueror');
 });
 
 // ----------------------------------------------------
