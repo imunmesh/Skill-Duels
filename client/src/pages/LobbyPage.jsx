@@ -360,7 +360,7 @@ export const LobbyPage = ({ onMatchFound }) => {
                       key={cat._id || cat.slug}
                       title={cat.name}
                       description={cat.description || 'Skill domain questions.'}
-                      icon={<Icon size={24} strokeWidth={2} />}
+                      icon={<Icon size={22} strokeWidth={2.2} />}
                       iconColor={color}
                       selected={isSelected}
                       onClick={() => setSelectedCategory(cat.slug)}

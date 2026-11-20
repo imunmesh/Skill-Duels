@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { CheckCircle2, Code } from "lucide-react";
 
 export interface InfoCardProps {
@@ -31,43 +31,18 @@ export const InfoCard: React.FC<InfoCardProps> = ({
   width = "100%",
   height,
   className = "",
-  borderColor = "#6366f1",
-  cardBgColor = "#131b2e",
+  borderColor = "#5562ea",
+  cardBgColor = "#111625",
   textColor = "#ffffff",
   descriptionColor = "#94a3b8",
 }) => {
   const [hovered, setHovered] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  // Mouse tracking for interactive rotating conic border
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = cardRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
-    const angle = Math.atan2(y, x);
-    el.style.setProperty("--rotation", `${angle}rad`);
-  };
-
-  const activeColor = selected ? "#818cf8" : borderColor;
-  const borderBgColor = "rgba(255, 255, 255, 0.08)";
-  const borderGradient = hovered || selected
-    ? `conic-gradient(from var(--rotation, 0deg), ${activeColor} 0deg, ${activeColor} 120deg, ${borderBgColor} 120deg, ${borderBgColor} 360deg)`
-    : borderBgColor;
 
   return (
     <div
-      ref={cardRef}
       onClick={onClick}
-      onMouseMove={handleMouseMove}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => {
-        setHovered(false);
-        if (cardRef.current) {
-          cardRef.current.style.setProperty("--rotation", "0deg");
-        }
-      }}
+      onMouseLeave={() => setHovered(false)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -76,150 +51,142 @@ export const InfoCard: React.FC<InfoCardProps> = ({
           onClick && onClick();
         }
       }}
-      className={`info-card-container ${selected ? "is-selected" : ""} ${className}`}
+      className={`arena-card ${selected ? "is-selected" : ""} ${className}`}
       style={{
         width,
-        height: height || "auto",
-        minHeight: 195,
-        borderRadius: "20px",
-        padding: "2px",
-        background: borderGradient,
-        boxShadow: selected
-          ? `0 0 25px rgba(99, 102, 241, 0.3), inset 0 0 15px rgba(99, 102, 241, 0.05)`
+        height: height || "100%",
+        minHeight: 200,
+        borderRadius: "22px",
+        background: cardBgColor,
+        border: selected
+          ? `2px solid ${borderColor}`
           : hovered
-          ? `0 10px 30px rgba(0, 0, 0, 0.4)`
+          ? "1px solid rgba(99, 102, 241, 0.45)"
+          : "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: selected
+          ? `0 0 0 1px rgba(85, 98, 234, 0.4), 0 0 25px rgba(85, 98, 234, 0.25)`
+          : hovered
+          ? "0 12px 28px -8px rgba(0, 0, 0, 0.45)"
           : "none",
-        cursor: "pointer",
-        outline: "none",
-        transition: "box-shadow 0.25s ease, transform 0.2s ease",
         transform: hovered && !selected ? "translateY(-2px)" : "none",
+        padding: "1.5rem 1.6rem 1.75rem",
         display: "flex",
         flexDirection: "column",
-        boxSizing: "border-box",
+        justifyContent: "flex-start",
+        textAlign: "left",
+        cursor: "pointer",
+        outline: "none",
         position: "relative",
+        boxSizing: "border-box",
+        transition: "all 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
-      {/* Inner Card Container */}
+      {/* Top Header Row: Squircle Icon & Selected Badge */}
       <div
         style={{
-          width: "100%",
-          height: "100%",
-          flexGrow: 1,
-          borderRadius: "18px",
-          background: cardBgColor,
-          padding: "1.6rem 1.6rem 1.8rem",
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-start",
-          textAlign: "left",
-          boxSizing: "border-box",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          marginBottom: "1.25rem",
         }}
       >
-        {/* Top Header Row: Squircle Icon & Selected Badge */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-            marginBottom: "1.25rem",
-          }}
-        >
-          {/* Squircle Icon */}
-          {icon ? (
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: `${iconColor}18`,
-                border: `1px solid ${iconColor}35`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: iconColor,
-                flexShrink: 0,
-              }}
-            >
-              {icon}
-            </div>
-          ) : image ? (
-            <img
-              src={image}
-              alt={title}
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                objectFit: "cover",
-                border: `1px solid rgba(255, 255, 255, 0.1)`,
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: `${iconColor}18`,
-                border: `1px solid ${iconColor}35`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: iconColor,
-                flexShrink: 0,
-              }}
-            >
-              <Code size={24} />
-            </div>
-          )}
+        {/* Squircle Icon Container */}
+        {icon ? (
+          <div
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: 14,
+              background: `${iconColor}18`,
+              border: `1px solid ${iconColor}35`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: iconColor,
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </div>
+        ) : image ? (
+          <img
+            src={image}
+            alt={title}
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: 14,
+              objectFit: "cover",
+              border: `1px solid rgba(255, 255, 255, 0.1)`,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: 14,
+              background: `${iconColor}18`,
+              border: `1px solid ${iconColor}35`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: iconColor,
+              flexShrink: 0,
+            }}
+          >
+            <Code size={22} strokeWidth={2.2} />
+          </div>
+        )}
 
-          {/* Selected Badge */}
-          {selected && (
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                color: "#818cf8",
-                fontSize: "0.92rem",
-                fontWeight: 600,
-              }}
-            >
-              <CheckCircle2 size={18} strokeWidth={2.2} />
-              <span>Selected</span>
-            </div>
-          )}
-        </div>
-
-        {/* Card Title */}
-        <h3
-          style={{
-            fontSize: "1.2rem",
-            fontWeight: 700,
-            color: textColor,
-            marginBottom: "0.45rem",
-            letterSpacing: "-0.01em",
-            lineHeight: 1.25,
-            whiteSpace: "pre-line",
-            margin: 0,
-          }}
-        >
-          {title}
-        </h3>
-
-        {/* Card Description */}
-        <p
-          style={{
-            fontSize: "0.88rem",
-            color: descriptionColor,
-            lineHeight: 1.45,
-            margin: "0.45rem 0 0 0",
-          }}
-        >
-          {description}
-        </p>
+        {/* Selected Badge */}
+        {selected && (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "#818cf8",
+              fontSize: "0.92rem",
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            <CheckCircle2 size={18} strokeWidth={2.2} />
+            <span>Selected</span>
+          </div>
+        )}
       </div>
+
+      {/* Card Title */}
+      <h3
+        style={{
+          fontSize: "1.22rem",
+          fontWeight: 700,
+          color: textColor,
+          marginBottom: "0.45rem",
+          letterSpacing: "-0.015em",
+          lineHeight: 1.25,
+          whiteSpace: "pre-line",
+          margin: "0 0 0.45rem 0",
+        }}
+      >
+        {title}
+      </h3>
+
+      {/* Card Description */}
+      <p
+        style={{
+          fontSize: "0.88rem",
+          color: descriptionColor,
+          lineHeight: 1.5,
+          margin: 0,
+          fontWeight: 400,
+        }}
+      >
+        {description}
+      </p>
     </div>
   );
 };
