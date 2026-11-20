@@ -2,6 +2,14 @@ const User = require('../models/User');
 const Match = require('../models/Match');
 const { RANK_TIERS, AVAILABLE_BADGES, getActiveStreak, calculateRank } = require('../services/progressionService');
 
+const VALID_TIERS = new Set(['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ace', 'Conqueror']);
+const resolvePlayerTier = (player) => {
+  if (player.rank && VALID_TIERS.has(player.rank)) {
+    return player.rank;
+  }
+  return calculateRank(player.xp || 0);
+};
+
 /**
  * @desc    Get Global Leaderboard ranked by XP (FR-06, AC-05, NFR-02)
  * @route   GET /api/leaderboard/global
@@ -32,7 +40,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
       displayName: player.displayName || player.username,
       avatarUrl: player.avatarUrl || '',
       xp: player.xp || 0,
-      rank: player.rank || calculateRank(player.xp || 0),
+      rank: resolvePlayerTier(player),
       badgesCount: (player.badges || []).length,
       matchesPlayed: player.stats?.matchesPlayed || 0,
       matchesWon: player.stats?.matchesWon || 0,
@@ -87,7 +95,7 @@ const getWeeklyLeaderboard = async (req, res, next) => {
       weeklyXP: player.weeklyXP || 0,
       totalXP: player.xp || 0,
       xp: player.weeklyXP || 0,
-      rank: player.rank || calculateRank(player.xp || 0),
+      rank: resolvePlayerTier(player),
       badgesCount: (player.badges || []).length,
       matchesPlayed: player.stats?.matchesPlayed || 0,
       matchesWon: player.stats?.matchesWon || 0,
