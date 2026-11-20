@@ -1,0 +1,32 @@
+import { useState, type ChangeEvent } from "react";
+
+export interface UseCharacterLimitOptions {
+  maxLength: number;
+  initialValue?: string;
+}
+
+export function useCharacterLimit({
+  maxLength,
+  initialValue = "",
+}: UseCharacterLimitOptions) {
+  const [value, setValue] = useState(initialValue);
+  const [characterCount, setCharacterCount] = useState(initialValue.length);
+
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const text = e.target.value;
+    if (text.length <= maxLength) {
+      setValue(text);
+      setCharacterCount(text.length);
+    }
+  };
+
+  return {
+    value,
+    characterCount,
+    handleChange,
+    maxLength,
+    setValue,
+  };
+}

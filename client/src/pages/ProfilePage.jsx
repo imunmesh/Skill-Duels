@@ -3,6 +3,19 @@ import { useAuth } from '../context/AuthContext';
 import { leaderboardAPI, profileAPI } from '../services/api';
 import { getAvatarUrl } from '../utils/avatar';
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Button } from '../components/ui/button';
+import {
   User,
   Edit3,
   Camera,
@@ -292,294 +305,211 @@ export const ProfilePage = ({ onBackToArena }) => {
         )}
       </div>
 
-      {/* EDIT PROFILE MODAL DIALOG */}
-      {isEditing && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-profile-title"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.78)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1.25rem',
-            overflowY: 'auto',
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) cancelEditing();
-          }}
-        >
-          <div
-            className="card"
-            style={{
-              background: '#182234',
-              border: '1px solid var(--border-focus)',
-              maxWidth: 580,
-              width: '100%',
-              padding: '2rem',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
-            }}
-          >
-            <h2 id="edit-profile-title" style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Edit3 size={20} color="#818cf8" />
+      {/* SHADCN RADIX EDIT PROFILE MODAL DIALOG */}
+      <Dialog open={isEditing} onOpenChange={(open) => { if (!open) cancelEditing(); else setIsEditing(true); }}>
+        <DialogContent className="flex flex-col gap-0 overflow-y-visible p-0 sm:max-w-xl [&>button:last-child]:top-3.5 bg-[#182234] border-[#334155] text-slate-100 shadow-2xl z-[101]">
+          <DialogHeader className="contents space-y-0 text-left">
+            <DialogTitle className="border-b border-[#334155] px-6 py-4 text-base font-semibold text-white flex items-center gap-2">
+              <Edit3 size={18} className="text-indigo-400" />
               <span>Edit Profile</span>
-            </h2>
+            </DialogTitle>
+          </DialogHeader>
+          <DialogDescription className="sr-only">
+            Make changes to your profile here. Update your banner, avatar, display name, bio, and skills.
+          </DialogDescription>
 
-          {editError && (
-            <div className="alert alert-danger" role="alert" style={{ marginBottom: '1.25rem' }}>
-              <AlertCircle size={18} />
-              <span>{editError}</span>
-            </div>
-          )}
-
-          {/* Avatar Upload */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem' }}>
-            {avatarPreview && !avatarImgError ? (
+          <div className="overflow-y-auto max-h-[75vh]">
+            {/* Profile Cover Banner */}
+            <div className="h-32 relative bg-slate-800 overflow-hidden">
               <img
-                key={avatarPreview}
-                src={getAvatarUrl(avatarPreview)}
-                alt="Avatar preview"
-                onError={() => setAvatarImgError(true)}
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '2px solid var(--accent-primary)',
-                }}
+                src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80"
+                alt="Profile banner"
+                className="w-full h-full object-cover opacity-85"
               />
-            ) : (
-              <div
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: '50%',
-                  background: 'var(--accent-gradient)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.8rem',
-                  fontWeight: 800,
-                  color: '#ffffff',
-                }}
-              >
-                {userInitial}
-              </div>
-            )}
-            <div>
-              <input
-                id="profile-avatar-file-input"
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleFileChange}
-                onClick={(e) => {
-                  e.target.value = null;
-                }}
-                style={{ display: 'none' }}
-              />
-              <label
-                htmlFor="profile-avatar-file-input"
-                className="btn btn-secondary"
-                style={{
-                  padding: '0.4rem 0.9rem',
-                  fontSize: '0.85rem',
-                  minHeight: 34,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                }}
-              >
-                <Camera size={15} />
-                <span>Change Avatar</span>
-              </label>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                JPG, PNG, or WebP &bull; Max 2 MB
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#182234] to-transparent" />
             </div>
-          </div>
 
-          {/* Display Name */}
-          <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label className="form-label" htmlFor="editDisplayName">
-              Display Name
-            </label>
-            <input
-              id="editDisplayName"
-              type="text"
-              maxLength={50}
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
-              placeholder={user?.username}
-            />
-          </div>
+            {/* Avatar Row */}
+            <div className="-mt-12 px-6 flex items-end justify-between">
+              <div className="relative">
+                {avatarPreview && !avatarImgError ? (
+                  <img
+                    key={avatarPreview}
+                    src={getAvatarUrl(avatarPreview)}
+                    alt="Avatar preview"
+                    onError={() => setAvatarImgError(true)}
+                    className="w-24 h-24 rounded-full object-cover border-4 border-[#182234] shadow-md bg-slate-700"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full border-4 border-[#182234] shadow-md bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-3xl font-bold text-white">
+                    {userInitial}
+                  </div>
+                )}
+                <input
+                  id="profile-avatar-file-input"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFileChange}
+                  onClick={(e) => {
+                    e.target.value = null;
+                  }}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="profile-avatar-file-input"
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center cursor-pointer shadow-lg transition-transform hover:scale-105"
+                  title="Change avatar"
+                >
+                  <Camera size={16} />
+                </label>
+              </div>
 
-          {/* Bio */}
-          <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label className="form-label" htmlFor="editBio">
-                Bio
-              </label>
-              <span style={{ fontSize: '0.75rem', color: bio.length > 270 ? '#fca5a5' : 'var(--text-muted)' }}>
-                {bio.length} / 300
+              <span className="text-xs text-slate-400 pb-1">
+                JPG, PNG or WebP (max 2MB)
               </span>
             </div>
-            <textarea
-              id="editBio"
-              rows={3}
-              maxLength={300}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              className="form-input"
-              style={{ width: '100%', resize: 'vertical' }}
-              placeholder="Tell others about yourself..."
-            />
-          </div>
 
-          {/* Skills Tag Input */}
-          <div className="form-group" style={{ marginBottom: '1.5rem', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label className="form-label" htmlFor="editSkills">
-                Skills ({skills.length} / 10)
-              </label>
-            </div>
+            {/* Form Fields */}
+            <div className="px-6 pb-6 pt-4 space-y-4">
+              {editError && (
+                <div className="p-3 bg-red-950/60 border border-red-500/30 rounded-lg text-sm text-red-300 flex items-center gap-2">
+                  <AlertCircle size={16} className="text-red-400 flex-shrink-0" />
+                  <span>{editError}</span>
+                </div>
+              )}
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.6rem' }}>
-              {skills.map((skill) => (
-                <span
-                  key={skill}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    padding: '0.25rem 0.6rem',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'rgba(99, 102, 241, 0.15)',
-                    border: '1px solid rgba(99, 102, 241, 0.4)',
-                    color: '#c7d2fe',
-                    fontSize: '0.8rem',
-                  }}
-                >
-                  <span>{skill}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveSkill(skill)}
-                    style={{ background: 'transparent', border: 'none', color: '#a5b4fc', cursor: 'pointer', padding: 0 }}
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="editDisplayName" className="text-sm font-medium text-slate-200">
+                  Display Name
+                </Label>
+                <Input
+                  id="editDisplayName"
+                  type="text"
+                  maxLength={50}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder={user?.username}
+                  className="bg-[#0f172a] border-[#334155] text-white focus-visible:ring-indigo-500"
+                />
+              </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                id="editSkills"
-                type="text"
-                value={skillInput}
-                onChange={(e) => {
-                  setSkillInput(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddSkill(suggestions[0] || skillInput);
-                  }
-                }}
-                className="form-input"
-                style={{ flex: 1 }}
-                placeholder="Type skill name..."
-                disabled={skills.length >= 10}
-              />
-              <button
-                type="button"
-                onClick={() => handleAddSkill(suggestions[0] || skillInput)}
-                className="btn btn-secondary"
-                disabled={!skillInput.trim() || skills.length >= 10}
-              >
-                Add
-              </button>
-            </div>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="editBio" className="text-sm font-medium text-slate-200">
+                    Biography
+                  </Label>
+                  <span className={`text-xs ${bio.length > 270 ? 'text-amber-400' : 'text-slate-400'}`}>
+                    {300 - bio.length} characters left
+                  </span>
+                </div>
+                <Textarea
+                  id="editBio"
+                  rows={3}
+                  maxLength={300}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell other competitors about your tech focus..."
+                  className="bg-[#0f172a] border-[#334155] text-white focus-visible:ring-indigo-500 resize-none"
+                />
+              </div>
 
-            {/* Autocomplete Dropdown */}
-            {showSuggestions && skillInput.trim().length > 0 && suggestions.length > 0 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  zIndex: 30,
-                  marginTop: '0.25rem',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  maxHeight: 180,
-                  overflowY: 'auto',
-                  padding: '0.5rem',
-                }}
-              >
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                  {suggestions.slice(0, 8).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => handleAddSkill(item)}
-                      style={{
-                        background: 'var(--bg-input)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: '#ffffff',
-                        fontSize: '0.75rem',
-                        padding: '0.25rem 0.5rem',
-                        cursor: 'pointer',
-                      }}
+              {/* Skills Tag Section */}
+              <div className="space-y-2 relative">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="editSkills" className="text-sm font-medium text-slate-200">
+                    Skills ({skills.length} / 10)
+                  </Label>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 min-h-[32px]">
+                  {skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/40 text-indigo-200 text-xs font-medium"
                     >
-                      + {item}
-                    </button>
+                      <span>{skill}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSkill(skill)}
+                        className="text-indigo-400 hover:text-white"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
                   ))}
                 </div>
+
+                <div className="flex gap-2">
+                  <Input
+                    id="editSkills"
+                    type="text"
+                    value={skillInput}
+                    onChange={(e) => {
+                      setSkillInput(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSkill(suggestions[0] || skillInput);
+                      }
+                    }}
+                    placeholder="Type a technology (e.g. React, Node, Python)..."
+                    disabled={skills.length >= 10}
+                    className="flex-1 bg-[#0f172a] border-[#334155] text-white"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => handleAddSkill(suggestions[0] || skillInput)}
+                    disabled={!skillInput.trim() || skills.length >= 10}
+                  >
+                    Add
+                  </Button>
+                </div>
+
+                {/* Autocomplete Dropdown */}
+                {showSuggestions && skillInput.trim().length > 0 && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-slate-900 border border-slate-700 rounded-lg max-h-40 overflow-y-auto p-2 shadow-xl flex flex-wrap gap-1.5">
+                    {suggestions.slice(0, 8).map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => handleAddSkill(item)}
+                        className="bg-slate-800 hover:bg-indigo-600 border border-slate-700 text-slate-200 hover:text-white text-xs px-2.5 py-1 rounded cursor-pointer transition-colors"
+                      >
+                        + {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button
+          <DialogFooter className="border-t border-[#334155] px-6 py-4 flex sm:justify-end gap-2 bg-[#141d2c]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={cancelEditing}
+              disabled={saving}
+              className="border-slate-700 hover:bg-slate-800 text-slate-300"
+            >
+              Cancel
+            </Button>
+            <Button
               type="button"
               onClick={handleSaveProfile}
               disabled={saving}
-              className="btn btn-primary"
-              style={{ minHeight: 38 }}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button
-              type="button"
-              onClick={cancelEditing}
-              disabled={saving}
-              className="btn btn-secondary"
-              style={{ minHeight: 38 }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-      )}
+              {saving ? 'Saving changes...' : 'Save changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* PROFILE OVERVIEW CARD */}
       <section
