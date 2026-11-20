@@ -21,7 +21,7 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
   }, [playerResult, updateProfileXP]);
 
   return (
-    <main className="container" style={{ maxWidth: 720, paddingTop: '3rem' }}>
+    <main className="container" style={{ maxWidth: 720, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
       <div className="card" style={{ textAlign: 'center', padding: '3.5rem 2.5rem' }}>
         {/* Victory / Defeat Badge */}
         <div style={{ marginBottom: '1.5rem' }}>

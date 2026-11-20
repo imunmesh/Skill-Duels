@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Crown, ChevronLeft, ChevronRight, Globe, Calendar } from "lucide-react";
+import { Crown, ChevronLeft, ChevronRight, Globe, Calendar, Search } from "lucide-react";
 import { getAvatarUrl } from "@/utils/avatar";
 
 export interface PodiumPlayer {
@@ -15,6 +15,9 @@ export interface PodiumPlayer {
   totalXP?: number;
   rank?: string;
   streak?: number;
+  matchesPlayed?: number;
+  matchesWon?: number;
+  winRate?: number;
 }
 
 export interface PodiumLeaderboardProps {
@@ -71,6 +74,8 @@ export default function PodiumLeaderboard({
   onLimitChange,
   className = "",
 }: PodiumLeaderboardProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Sort players by position
   const sorted = [...players].sort((a, b) => a.position - b.position);
 
@@ -80,6 +85,19 @@ export default function PodiumLeaderboard({
   const third = sorted.find((p) => p.position === 3) || sorted[2];
 
   const dateRange = type === "weekly" ? getWeekDateRange() : "All-Time Standings";
+
+  const filteredPlayers = sorted.filter((p) => {
+    if (!searchQuery.trim()) return true;
+    const name = (p.displayName || p.username || "").toLowerCase();
+    return name.includes(searchQuery.trim().toLowerCase());
+  });
+
+  const checkTie = (idx: number, arr: PodiumPlayer[]) => {
+    const currentScore = arr[idx].xp || arr[idx].weeklyXP || 0;
+    const prevScore = idx > 0 ? (arr[idx - 1].xp || arr[idx - 1].weeklyXP || 0) : null;
+    const nextScore = idx < arr.length - 1 ? (arr[idx + 1].xp || arr[idx + 1].weeklyXP || 0) : null;
+    return currentScore > 0 && (currentScore === prevScore || currentScore === nextScore);
+  };
 
   return (
     <div className={`podium-leaderboard-root ${className}`}>
@@ -201,18 +219,20 @@ export default function PodiumLeaderboard({
         }
 
         .plb-crown-badge.gold {
-          background: #b45309;
+          background: #d97706;
           color: #fef08a;
+          box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
         }
 
         .plb-crown-badge.silver {
-          background: #334155;
-          color: #e2e8f0;
+          background: #475569;
+          color: #f1f5f9;
         }
 
         .plb-crown-badge.bronze {
-          background: #78350f;
-          color: #fed7aa;
+          background: #9a3412;
+          color: #ffedd5;
+          box-shadow: 0 0 8px rgba(154, 52, 18, 0.4);
         }
 
         .plb-podium-name {
@@ -249,25 +269,68 @@ export default function PodiumLeaderboard({
           font-weight: 800;
         }
 
-        /* 1st Place Pillar */
+        /* 1st Place Pillar (Gold) */
         .plb-pedestal.gold {
-          height: 140px;
-          background: linear-gradient(180deg, #b45309 0%, #92400e 60%, #78350f 100%);
+          height: 155px;
+          background: linear-gradient(180deg, #d97706 0%, #b45309 60%, #78350f 100%);
           color: #fef08a;
         }
 
-        /* 2nd Place Pillar */
+        /* 2nd Place Pillar (Silver) */
         .plb-pedestal.silver {
-          height: 105px;
-          background: linear-gradient(180deg, #475569 0%, #334155 60%, #1e293b 100%);
-          color: #cbd5e1;
+          height: 110px;
+          background: linear-gradient(180deg, #64748b 0%, #475569 60%, #334155 100%);
+          color: #f1f5f9;
         }
 
-        /* 3rd Place Pillar */
+        /* 3rd Place Pillar (Bronze - Distinct Reddish Copper) */
         .plb-pedestal.bronze {
-          height: 80px;
-          background: linear-gradient(180deg, #854d0e 0%, #713f12 60%, #542b08 100%);
-          color: #fed7aa;
+          height: 82px;
+          background: linear-gradient(180deg, #9a3412 0%, #7c2d12 60%, #431407 100%);
+          color: #ffedd5;
+        }
+
+        .plb-search-wrap {
+          position: relative;
+          margin-bottom: 14px;
+        }
+
+        .plb-search-input {
+          width: 100%;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          padding: 8px 12px 8px 36px;
+          font-size: 0.85rem;
+          color: #f8fafc;
+          outline: none;
+          transition: all 0.2s ease;
+        }
+
+        .plb-search-input:focus {
+          border-color: #818cf8;
+          background: rgba(255, 255, 255, 0.08);
+          box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
+        }
+
+        .plb-search-icon {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #64748b;
+          pointer-events: none;
+        }
+
+        .plb-tied-chip {
+          font-size: 0.65rem;
+          background: rgba(255, 255, 255, 0.08);
+          color: #94a3b8;
+          padding: 1px 5px;
+          border-radius: 4px;
+          font-weight: 600;
+          margin-left: 4px;
+          text-transform: uppercase;
         }
 
         /* RANKED LIST CARD */
@@ -618,24 +681,41 @@ export default function PodiumLeaderboard({
         </div>
       </div>
 
+      {/* SEARCH BAR */}
+      <div className="plb-search-wrap">
+        <Search size={15} className="plb-search-icon" />
+        <input
+          type="text"
+          className="plb-search-input"
+          placeholder="Search challengers by name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
       {/* RANKED LIST CARD */}
       <div className="plb-list-card">
         {loading ? (
-          <div style={{ padding: "2rem", textAlign: "center", color: "#94a3b8" }}>
+          <div style={{ padding: "2.5rem 1rem", textAlign: "center", color: "#94a3b8" }}>
             Loading rankings...
           </div>
-        ) : sorted.length === 0 ? (
-          <div style={{ padding: "2rem", textAlign: "center", color: "#94a3b8" }}>
-            No player standings recorded yet. Compete in a duel to claim #1!
+        ) : filteredPlayers.length === 0 ? (
+          <div style={{ padding: "2.5rem 1rem", textAlign: "center", color: "#94a3b8", lineHeight: 1.5 }}>
+            {searchQuery
+              ? "No challengers matched your search query."
+              : type === "weekly"
+              ? "No battles completed yet this week. Enter the Arena to take the #1 spot!"
+              : "No challenger standings recorded yet. Start a duel to rank!"}
           </div>
         ) : (
-          sorted.map((player) => {
+          filteredPlayers.map((player, idx) => {
             const isMe =
               currentUserId !== undefined &&
               String(player.id) === String(currentUserId);
             const score = player.xp || player.weeklyXP || 0;
             const level = calculateLevel(player.totalXP || player.xp || 0);
             const tier = player.rank || "Novice";
+            const tied = checkTie(idx, filteredPlayers);
 
             return (
               <div
@@ -647,17 +727,18 @@ export default function PodiumLeaderboard({
                   <span className="plb-row-rank-num">{player.position}</span>
                   {player.position === 1 ? (
                     <span className="plb-row-crown" style={{ color: "#f59e0b" }}>
-                      <Crown size={16} />
+                      <Crown size={15} />
                     </span>
                   ) : player.position === 2 ? (
                     <span className="plb-row-crown" style={{ color: "#94a3b8" }}>
-                      <Crown size={16} />
+                      <Crown size={15} />
                     </span>
                   ) : player.position === 3 ? (
                     <span className="plb-row-crown" style={{ color: "#d97706" }}>
-                      <Crown size={16} />
+                      <Crown size={15} />
                     </span>
                   ) : null}
+                  {tied && <span className="plb-tied-chip">tied</span>}
                 </div>
 
                 {/* Avatar Bubble */}
@@ -676,18 +757,28 @@ export default function PodiumLeaderboard({
                   </div>
                 )}
 
-                {/* Name & Level/Tier */}
+                {/* Name & Level/Tier/Win Rate */}
                 <div className="plb-row-info">
                   <p className="plb-row-name">
                     {isMe ? "You" : player.displayName || player.username}
                   </p>
                   <p className="plb-row-meta">
                     Level {level} – {tier}
+                    {player.matchesWon !== undefined && player.matchesWon > 0 && (
+                      <span style={{ color: "#64748b", marginLeft: 6 }}>
+                        &bull; {player.matchesWon}W {player.winRate ? `(${player.winRate}%)` : ""}
+                      </span>
+                    )}
                   </p>
                 </div>
 
                 {/* Score */}
-                <div className="plb-row-score">{formatScoreK(score)}</div>
+                <div
+                  className="plb-row-score"
+                  style={isMe ? { color: "#38bdf8", fontWeight: 800 } : {}}
+                >
+                  {formatScoreK(score)}
+                </div>
               </div>
             );
           })

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { categoryAPI } from '../services/api';
-import { Swords, Code, Brain, Compass, Globe, Layers, Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import { Swords, Code, Brain, Compass, Globe, Layers, Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const ICON_MAP = {
   Code,
@@ -100,7 +100,7 @@ export const LobbyPage = ({ onMatchFound }) => {
   };
 
   return (
-    <main className="container" style={{ maxWidth: 860, paddingTop: '2.5rem' }}>
+    <main className="container" style={{ maxWidth: 860, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
       {/* Connection Warning Banner */}
       {!connected && (
         <div className="alert alert-danger" role="alert" style={{ marginBottom: '1.5rem' }}>
@@ -113,9 +113,17 @@ export const LobbyPage = ({ onMatchFound }) => {
 
       {/* Hero Banner */}
       <section style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
           <span className="badge badge-primary">
             <Sparkles size={12} /> Competitive Arena (FR-03)
+          </span>
+          <span
+            title="Active challengers currently dueling and queueing in the arena"
+            className="badge badge-success"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', cursor: 'help' }}
+          >
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} />
+            LIVE &bull; 14 in Queue
           </span>
         </div>
         <h1 style={{ fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>
@@ -218,8 +226,8 @@ export const LobbyPage = ({ onMatchFound }) => {
                       onClick={() => setSelectedCategory(cat.slug)}
                       aria-pressed={isSelected}
                       style={{
-                        background: isSelected ? 'rgba(99, 102, 241, 0.12)' : 'var(--bg-card)',
-                        border: `2px solid ${isSelected ? 'var(--border-focus)' : 'var(--border-color)'}`,
+                        background: isSelected ? 'rgba(99, 102, 241, 0.16)' : 'var(--bg-card)',
+                        border: `2px solid ${isSelected ? '#818cf8' : 'var(--border-color)'}`,
                         borderRadius: 'var(--radius-lg)',
                         padding: '1.25rem',
                         textAlign: 'left',
@@ -227,23 +235,31 @@ export const LobbyPage = ({ onMatchFound }) => {
                         flexDirection: 'column',
                         gap: '0.75rem',
                         cursor: 'pointer',
-                        boxShadow: isSelected ? '0 0 15px var(--accent-glow)' : 'none',
+                        boxShadow: isSelected ? '0 0 20px rgba(99, 102, 241, 0.35)' : 'none',
+                        transition: 'all 0.2s ease',
                       }}
                     >
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 'var(--radius-md)',
-                          background: `${color}20`,
-                          border: `1px solid ${color}40`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: color,
-                        }}
-                      >
-                        <Icon size={20} />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--radius-md)',
+                            background: `${color}20`,
+                            border: `1px solid ${color}40`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: color,
+                          }}
+                        >
+                          <Icon size={20} />
+                        </div>
+                        {isSelected && (
+                          <span style={{ color: '#818cf8', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 700 }}>
+                            <CheckCircle2 size={16} /> Selected
+                          </span>
+                        )}
                       </div>
                       <div>
                         <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', marginBottom: '0.25rem' }}>

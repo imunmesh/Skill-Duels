@@ -187,7 +187,7 @@ export const AdminPage = () => {
   };
 
   return (
-    <main className="container" style={{ maxWidth: 1100, paddingTop: '2rem' }}>
+    <main className="container" style={{ maxWidth: 1100, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>

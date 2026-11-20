@@ -421,41 +421,47 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
         </div>
 
         {/* Center: Server-Authoritative Countdown Timer (FR-04, AC-03) */}
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', position: 'relative' }}>
           <div
             role="timer"
             aria-live="polite"
             aria-atomic="true"
             aria-label={`${remainingSeconds} seconds remaining for this question`}
             className="match-timer-box"
-            style={{
-              width: 58,
-              height: 58,
-              borderRadius: '50%',
-              background: 'var(--bg-input)',
-              border: `3px solid ${timerColor}`,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 0.25rem',
-              boxShadow: remainingSeconds <= 3 ? '0 0 15px rgba(239, 68, 68, 0.4)' : 'none',
-              transition: 'all 0.2s ease',
-            }}
+            style={{ position: 'relative', width: 62, height: 62, margin: '0 auto 0.2rem' }}
           >
-            <span
-              className="match-timer-number"
+            <svg width="62" height="62" viewBox="0 0 62 62" style={{ transform: 'rotate(-90deg)' }}>
+              <circle cx="31" cy="31" r="26" fill="var(--bg-input)" stroke="#334155" strokeWidth="4" />
+              <circle
+                cx="31"
+                cy="31"
+                r="26"
+                fill="transparent"
+                stroke={timerColor}
+                strokeWidth="4"
+                strokeDasharray={163.36}
+                strokeDashoffset={163.36 - (163.36 * Math.max(0, remainingSeconds)) / 10}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 0.5s linear, stroke 0.3s ease' }}
+              />
+            </svg>
+            <div
               style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '1.35rem',
+                fontSize: '1.25rem',
                 fontWeight: 800,
                 color: timerColor,
               }}
             >
               {remainingSeconds}
-            </span>
+            </div>
           </div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             SECONDS
           </span>
         </div>
@@ -491,16 +497,68 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
             {opponent.username.charAt(0).toUpperCase()}
           </div>
         </div>
+
+        {/* Live Head-to-Head Score Bar */}
+        <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+            <span>Live Score Differential</span>
+            <span>
+              {playerScore > opponentScore
+                ? `You lead by ${playerScore - opponentScore} pts`
+                : opponentScore > playerScore
+                ? `Opponent leads by ${opponentScore - playerScore} pts`
+                : 'Tied Score'}
+            </span>
+          </div>
+          <div style={{ height: 6, background: '#334155', borderRadius: 999, overflow: 'hidden', display: 'flex' }}>
+            <div
+              style={{
+                width: `${playerScore + opponentScore > 0 ? (playerScore / (playerScore + opponentScore)) * 100 : 50}%`,
+                background: '#818cf8',
+                transition: 'width 0.4s ease',
+              }}
+            />
+            <div
+              style={{
+                width: `${playerScore + opponentScore > 0 ? (opponentScore / (playerScore + opponentScore)) * 100 : 50}%`,
+                background: '#f59e0b',
+                transition: 'width 0.4s ease',
+              }}
+            />
+          </div>
+        </div>
       </section>
 
       {/* Question Card & Accessible Options (AC-01, NFR-05, NFR-07) */}
       {currentQuestion ? (
         <section className="card" style={{ padding: '2rem' }}>
-          {/* Question Meta Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <span className="badge badge-primary">
-              Question {currentQuestion.questionNumber} of {currentQuestion.totalQuestions}
-            </span>
+          {/* Question Meta Header & Step Dots */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <span className="badge badge-primary">
+                Question {currentQuestion.questionNumber} of {currentQuestion.totalQuestions}
+              </span>
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                {Array.from({ length: currentQuestion.totalQuestions || 5 }).map((_, stepIdx) => {
+                  const stepNum = stepIdx + 1;
+                  const isCurrent = stepNum === currentQuestion.questionNumber;
+                  const isDone = stepNum < currentQuestion.questionNumber;
+                  return (
+                    <div
+                      key={stepIdx}
+                      style={{
+                        width: isCurrent ? 18 : 8,
+                        height: 8,
+                        borderRadius: 4,
+                        background: isCurrent ? '#818cf8' : isDone ? '#10b981' : '#334155',
+                        transition: 'all 0.3s ease',
+                      }}
+                      title={`Question ${stepNum}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
             <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
               Category: <strong style={{ color: '#ffffff' }}>{currentQuestion.category}</strong>
             </span>

@@ -85,6 +85,10 @@ export interface MeadowRiseFooterProps {
   subheading?: string
   /** The pill under the headline. null hides it. */
   cta?: { label: string; href?: string } | null
+  /** Secondary CTA next to primary pill */
+  secondaryCta?: { label: string; href?: string } | null
+  /** If true, render compact footer without the hero banner (ideal for authenticated app pages) */
+  compact?: boolean
   /** The line under the brand. "" hides it. */
   tagline?: string
   /** Show the email signup. Defaults to true. */
@@ -214,13 +218,13 @@ const PRESETS: MeadowPaletteMap = {
       ["#162319", "#0c150f"],
     ],
     ground: "#0d1510",
-    ink: "#eef0e8",
-    sub: "#b4bdb0",
-    pill: "#eef0e8",
+    ink: "#ffffff",
+    sub: "#cbd5e1",
+    pill: "#ffffff",
     pillInk: "#0d1510",
-    text: "#e7ebe1",
-    muted: "#8d9a8a",
-    line: "rgba(231, 235, 225, 0.13)",
+    text: "#f8fafc",
+    muted: "#94a3b8",
+    line: "rgba(241, 245, 249, 0.16)",
     night: true,
   },
 }
@@ -857,9 +861,9 @@ const MRF_CSS = `
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: clamp(60px, 8vw, 110px) 20px clamp(48px, 6vw, 80px);
+  padding: clamp(50px, 7vw, 90px) 20px clamp(30px, 4vw, 50px);
   text-align: center;
-  transform: translate3d(0, calc((1 - var(--mrf-k, 1)) * 56px), 0);
+  transform: none;
 }
 .mrf-h {
   margin: 0;
@@ -919,7 +923,37 @@ const MRF_CSS = `
   transition-delay: calc(var(--d, 0) * 1ms);
 }
 .mrf-in .mrf-r { opacity: 1; transform: none; filter: blur(0); }
-.mrf-cta-wrap { margin-top: clamp(20px, 2.6vw, 30px); }
+.mrf-cta-wrap {
+  margin-top: clamp(20px, 2.6vw, 30px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.mrf-cta-secondary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+.mrf-cta-secondary:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: #ffffff;
+  transform: translateY(-2px);
+  color: #ffffff;
+}
 .mrf-cta {
   --mx: 0px;
   --my: 0px;
@@ -1278,6 +1312,8 @@ export default function MeadowRiseFooter({
   heading,
   subheading = "Live 1v1 multiplayer trivia battles across full-stack tech stacks.",
   cta = { label: "Enter Arena", href: "/arena" },
+  secondaryCta,
+  compact = false,
   tagline = "Test your speed, knowledge, and intuition. Climb the global leaderboards.",
   newsletter = true,
   placeholder = "Enter your developer email",
@@ -1787,47 +1823,56 @@ export default function MeadowRiseFooter({
       }
     >
       <style>{MRF_CSS}</style>
-      <div ref={sceneRef} className="mrf-scene">
-        <canvas ref={canvasRef} aria-hidden="true" />
-      </div>
-
-      <div ref={heroRef} className="mrf-hero">
-        <h2 className="mrf-h">
-          {lines.map((words, li) => (
-            <span className="mrf-line" key={li}>
-              {words.map((w, wi) => {
-                const d = (w.accent ? 900 : 520) + wordIndex++ * 75
-                return (
-                  <React.Fragment key={wi}>
-                    {wi > 0 ? " " : null}
-                    <span className={"mrf-w" + (w.accent ? " mrf-acc" : "")}>
-                      <span className="mrf-wi" style={{ "--d": d } as React.CSSProperties}>
-                        {w.text}
-                      </span>
-                    </span>
-                  </React.Fragment>
-                )
-              })}
-            </span>
-          ))}
-        </h2>
-        {subheading ? (
-          <p className="mrf-sub mrf-r" style={{ "--d": 1150 } as React.CSSProperties}>
-            {subheading}
-          </p>
-        ) : null}
-        {cta ? (
-          <div className="mrf-cta-wrap mrf-r" style={{ "--d": 1300 } as React.CSSProperties}>
-            <a className="mrf-cta" href={cta.href || "#"} onPointerMove={onCtaMove} onPointerLeave={onCtaLeave}>
-              <span>{cta.label}</span>
-              <span className="mrf-cta-arrow">
-                <Arrow className="mrf-a1" />
-                <Arrow className="mrf-a2" />
-              </span>
-            </a>
+      {!compact && (
+        <>
+          <div ref={sceneRef} className="mrf-scene">
+            <canvas ref={canvasRef} aria-hidden="true" />
           </div>
-        ) : null}
-      </div>
+
+          <div ref={heroRef} className="mrf-hero">
+            <h2 className="mrf-h">
+              {lines.map((words, li) => (
+                <span className="mrf-line" key={li}>
+                  {words.map((w, wi) => {
+                    const d = (w.accent ? 900 : 520) + wordIndex++ * 75
+                    return (
+                      <React.Fragment key={wi}>
+                        {wi > 0 ? " " : null}
+                        <span className={"mrf-w" + (w.accent ? " mrf-acc" : "")}>
+                          <span className="mrf-wi" style={{ "--d": d } as React.CSSProperties}>
+                            {w.text}
+                          </span>
+                        </span>
+                      </React.Fragment>
+                    )
+                  })}
+                </span>
+              ))}
+            </h2>
+            {subheading ? (
+              <p className="mrf-sub mrf-r" style={{ "--d": 1150 } as React.CSSProperties}>
+                {subheading}
+              </p>
+            ) : null}
+            {cta ? (
+              <div className="mrf-cta-wrap mrf-r" style={{ "--d": 1300 } as React.CSSProperties}>
+                <a className="mrf-cta" href={cta.href || "#"} onPointerMove={onCtaMove} onPointerLeave={onCtaLeave}>
+                  <span>{cta.label}</span>
+                  <span className="mrf-cta-arrow">
+                    <Arrow className="mrf-a1" />
+                    <Arrow className="mrf-a2" />
+                  </span>
+                </a>
+                {secondaryCta ? (
+                  <a className="mrf-cta-secondary" href={secondaryCta.href || "#"}>
+                    <span>{secondaryCta.label}</span>
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </>
+      )}
 
       <div className="mrf-body">
         {flowers.length ? (

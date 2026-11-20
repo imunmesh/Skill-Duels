@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, type FormEvent } from "react";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Swords, HelpCircle } from "lucide-react";
 
 export interface AuthSwitchProps {
   onLogin?: (credentials: { email: string; password: string }) => void | Promise<void>;
@@ -21,6 +21,9 @@ export default function AuthSwitch({
   className = "",
 }: AuthSwitchProps) {
   const [isSignUp, setIsSignUp] = useState(initialMode === "signup");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [forgotNotice, setForgotNotice] = useState(false);
 
   // Sign In State
   const [loginEmail, setLoginEmail] = useState("");
@@ -72,8 +75,9 @@ export default function AuthSwitch({
           position: relative;
           width: 100%;
           max-width: 960px;
-          min-height: 580px;
-          height: 600px;
+          min-height: 520px;
+          max-height: calc(100vh - 36px);
+          height: 570px;
           background: #111827;
           border: 1px solid rgba(129, 140, 248, 0.25);
           border-radius: 24px;
@@ -159,11 +163,11 @@ export default function AuthSwitch({
           width: 100%;
           background-color: rgba(30, 41, 59, 0.85);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          margin: 8px 0;
-          height: 52px;
-          border-radius: 52px;
+          margin: 6px 0;
+          height: 48px;
+          border-radius: 48px;
           display: grid;
-          grid-template-columns: 15% 85%;
+          grid-template-columns: 14% 72% 14%;
           padding: 0 0.8rem;
           position: relative;
           transition: 0.3s;
@@ -173,7 +177,7 @@ export default function AuthSwitch({
         .auth-switch .input-field:focus-within {
           background-color: rgba(30, 41, 59, 1);
           border-color: #818cf8;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
         }
 
         .auth-switch .input-field i,
@@ -191,14 +195,64 @@ export default function AuthSwitch({
           border: none;
           line-height: 1;
           font-weight: 500;
-          font-size: 0.95rem;
+          font-size: 0.92rem;
           color: #f1f5f9;
           width: 100%;
         }
 
         .auth-switch .input-field input::placeholder {
-          color: #64748b;
+          color: #94a3b8;
           font-weight: 400;
+          opacity: 0.9;
+        }
+
+        .auth-switch .input-field button.eye-toggle-btn {
+          background: none;
+          border: none;
+          color: #94a3b8;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          transition: color 0.2s;
+        }
+
+        .auth-switch .input-field button.eye-toggle-btn:hover {
+          color: #f1f5f9;
+        }
+
+        .auth-switch .forgot-password-link {
+          align-self: flex-end;
+          max-width: 380px;
+          margin: 4px 4px 8px auto;
+          font-size: 0.8rem;
+          color: #818cf8;
+          text-decoration: none;
+          cursor: pointer;
+          background: none;
+          border: none;
+          padding: 0;
+          font-weight: 500;
+          transition: color 0.2s ease;
+        }
+
+        .auth-switch .forgot-password-link:hover {
+          color: #a5b4fc;
+          text-decoration: underline;
+        }
+
+        .auth-switch .forgot-notice-banner {
+          background: rgba(99, 102, 241, 0.15);
+          border: 1px solid #818cf8;
+          color: #c7d2fe;
+          font-size: 0.8rem;
+          padding: 6px 10px;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          text-align: center;
+          max-width: 380px;
+          width: 100%;
         }
 
         .auth-switch .btn {
@@ -489,6 +543,11 @@ export default function AuthSwitch({
               <p className="subtitle">Enter your credentials to enter SkillDuels</p>
 
               {error && !isSignUp ? <div className="auth-error-banner">{error}</div> : null}
+              {forgotNotice && (
+                <div className="forgot-notice-banner">
+                  Password reset link has been dispatched to your email address!
+                </div>
+              )}
 
               <div className="input-field">
                 <span className="icon-slot">
@@ -509,14 +568,30 @@ export default function AuthSwitch({
                   <Lock size={18} />
                 </span>
                 <input
-                  type="password"
+                  type={showLoginPassword ? "text" : "password"}
                   name="password"
                   placeholder="Password"
                   required
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                 />
+                <button
+                  type="button"
+                  className="eye-toggle-btn"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                >
+                  {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
+
+              <button
+                type="button"
+                className="forgot-password-link"
+                onClick={() => setForgotNotice(true)}
+              >
+                Forgot password?
+              </button>
 
               <button type="submit" className="btn solid" disabled={loading}>
                 {loading ? "Signing in..." : "Login"}
@@ -569,7 +644,7 @@ export default function AuthSwitch({
                   <Lock size={18} />
                 </span>
                 <input
-                  type="password"
+                  type={showSignupPassword ? "text" : "password"}
                   name="password"
                   placeholder="Password (min 8 chars)"
                   required
@@ -577,6 +652,14 @@ export default function AuthSwitch({
                   value={signupPassword}
                   onChange={(e) => setSignupPassword(e.target.value)}
                 />
+                <button
+                  type="button"
+                  className="eye-toggle-btn"
+                  onClick={() => setShowSignupPassword(!showSignupPassword)}
+                  aria-label={showSignupPassword ? "Hide password" : "Show password"}
+                >
+                  {showSignupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
 
               <button type="submit" className="btn" disabled={loading}>
@@ -595,6 +678,28 @@ export default function AuthSwitch({
         <div className="panels-container">
           <div className="panel left-panel">
             <div className="content">
+              {/* SkillDuels Crossed Swords Branding */}
+              <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
+                    background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 8px 24px rgba(99, 102, 241, 0.45)',
+                    marginBottom: '0.4rem',
+                  }}
+                >
+                  <Swords size={28} color="#ffffff" />
+                </div>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
+                  Skill<span style={{ color: '#818cf8' }}>Duels</span>
+                </span>
+              </div>
+
               <h3>New Challenger?</h3>
               <p>
                 Join SkillDuels today to compete in real-time 1v1 tech trivia battles,

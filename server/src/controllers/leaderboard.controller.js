@@ -89,6 +89,12 @@ const getWeeklyLeaderboard = async (req, res, next) => {
       xp: player.weeklyXP || 0,
       rank: player.rank || 'Novice',
       badgesCount: (player.badges || []).length,
+      matchesPlayed: player.stats?.matchesPlayed || 0,
+      matchesWon: player.stats?.matchesWon || 0,
+      winRate:
+        player.stats?.matchesPlayed > 0
+          ? Math.round((player.stats.matchesWon / player.stats.matchesPlayed) * 100)
+          : 0,
       streak: getActiveStreak(player.streak),
     }));
 

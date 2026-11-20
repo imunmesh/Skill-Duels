@@ -64,6 +64,7 @@ export const ProfilePage = ({ onBackToArena }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
 
   // Editable Form State
   const [displayName, setDisplayName] = useState('');
@@ -215,6 +216,8 @@ export const ProfilePage = ({ onBackToArena }) => {
       }
 
       setIsEditing(false);
+      setToastMessage('Profile changes saved successfully!');
+      setTimeout(() => setToastMessage(''), 4000);
       loadProfile();
     } catch (err) {
       setEditError(err.message || 'Failed to update profile.');
@@ -237,7 +240,33 @@ export const ProfilePage = ({ onBackToArena }) => {
   const userInitial = (user?.displayName || user?.username || 'U').charAt(0).toUpperCase();
 
   return (
-    <main className="container" style={{ maxWidth: 1000, paddingTop: '1.5rem', paddingBottom: '3rem' }}>
+    <main className="container" style={{ maxWidth: 1000, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 999,
+            background: '#10b981',
+            color: '#ffffff',
+            padding: '0.75rem 1.25rem',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontWeight: 700,
+            fontSize: '0.9rem',
+          }}
+        >
+          <Check size={18} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Top Breadcrumb / Navigation */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
         <button
@@ -263,21 +292,46 @@ export const ProfilePage = ({ onBackToArena }) => {
         )}
       </div>
 
-      {/* EDIT MODE CARD */}
+      {/* EDIT PROFILE MODAL DIALOG */}
       {isEditing && (
-        <section
-          className="card"
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-profile-title"
           style={{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-focus)',
-            marginBottom: '2rem',
-            padding: '1.75rem',
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.78)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+            overflowY: 'auto',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) cancelEditing();
           }}
         >
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Edit3 size={20} color="#818cf8" />
-            <span>Edit Profile</span>
-          </h2>
+          <div
+            className="card"
+            style={{
+              background: '#182234',
+              border: '1px solid var(--border-focus)',
+              maxWidth: 580,
+              width: '100%',
+              padding: '2rem',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
+            }}
+          >
+            <h2 id="edit-profile-title" style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Edit3 size={20} color="#818cf8" />
+              <span>Edit Profile</span>
+            </h2>
 
           {editError && (
             <div className="alert alert-danger" role="alert" style={{ marginBottom: '1.25rem' }}>
@@ -523,7 +577,8 @@ export const ProfilePage = ({ onBackToArena }) => {
               Cancel
             </button>
           </div>
-        </section>
+        </div>
+      </div>
       )}
 
       {/* PROFILE OVERVIEW CARD */}
@@ -658,8 +713,8 @@ export const ProfilePage = ({ onBackToArena }) => {
             {/* Streak */}
             <div
               style={{
-                background: 'rgba(239, 68, 68, 0.12)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                background: (p.streak?.current || 0) > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(100, 116, 139, 0.12)',
+                border: `1px solid ${(p.streak?.current || 0) > 0 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(100, 116, 139, 0.3)'}`,
                 padding: '0.6rem 1rem',
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
@@ -667,12 +722,14 @@ export const ProfilePage = ({ onBackToArena }) => {
                 gap: '0.6rem',
               }}
             >
-              <Flame size={24} color="#ef4444" />
+              <Flame size={24} color={(p.streak?.current || 0) > 0 ? '#ef4444' : '#94a3b8'} />
               <div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fca5a5' }}>
-                  {p.streak?.current || 0} Day{p.streak?.current === 1 ? '' : 's'}
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (p.streak?.current || 0) > 0 ? '#fca5a5' : '#cbd5e1' }}>
+                  {(p.streak?.current || 0) > 0 ? `${p.streak.current} Day${p.streak.current === 1 ? '' : 's'}` : '0 Days'}
                 </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ACTIVE STREAK</div>
+                <div style={{ fontSize: '0.7rem', color: (p.streak?.current || 0) > 0 ? 'var(--text-muted)' : '#f59e0b' }}>
+                  {(p.streak?.current || 0) > 0 ? 'ACTIVE STREAK' : 'Play today to start streak'}
+                </div>
               </div>
             </div>
 
@@ -691,7 +748,7 @@ export const ProfilePage = ({ onBackToArena }) => {
               <Zap size={24} color="#f59e0b" />
               <div>
                 <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fcd34d' }}>
-                  {p.xp || 0} XP
+                  {(p.xp || 0).toLocaleString()} XP
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>LIFETIME XP</div>
               </div>
@@ -700,7 +757,7 @@ export const ProfilePage = ({ onBackToArena }) => {
         </div>
 
         {/* Rank Progression Bar */}
-        <div style={{ background: 'var(--bg-input)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ background: 'var(--bg-input)', padding: '1.1rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
             <span>
               Current Tier: <strong style={{ color: '#818cf8' }}>{p.rank}</strong>
@@ -718,10 +775,11 @@ export const ProfilePage = ({ onBackToArena }) => {
           <div
             style={{
               width: '100%',
-              height: 10,
+              height: 12,
               background: '#334155',
               borderRadius: 'var(--radius-full)',
               overflow: 'hidden',
+              marginBottom: '0.4rem',
             }}
           >
             <div
@@ -733,6 +791,10 @@ export const ProfilePage = ({ onBackToArena }) => {
                 transition: 'width 0.4s ease',
               }}
             />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <span>{p.xp || 0} XP earned</span>
+            <span style={{ fontWeight: 700, color: '#c7d2fe' }}>{p.rankProgressPercent || 0}% toward next rank</span>
           </div>
         </div>
       </section>
@@ -781,11 +843,11 @@ export const ProfilePage = ({ onBackToArena }) => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
                     <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>{badge.name}</h3>
                     {badge.isUnlocked ? (
-                      <span className="badge badge-success" style={{ fontSize: '0.6rem' }}>
+                      <span className="badge badge-success" style={{ fontSize: '0.6rem', background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', border: '1px solid #10b981' }}>
                         UNLOCKED
                       </span>
                     ) : (
-                      <span className="badge badge-warning" style={{ fontSize: '0.6rem' }}>
+                      <span className="badge badge-warning" style={{ fontSize: '0.6rem', background: 'rgba(100, 116, 139, 0.2)', color: '#94a3b8', border: '1px solid #64748b' }}>
                         LOCKED
                       </span>
                     )}
@@ -793,9 +855,14 @@ export const ProfilePage = ({ onBackToArena }) => {
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4, margin: 0 }}>
                     {badge.description}
                   </p>
+                  {!badge.isUnlocked && (
+                    <div style={{ fontSize: '0.72rem', color: '#f59e0b', marginTop: '0.3rem', fontWeight: 600 }}>
+                      Req: {badge.requirement || 'Play matches and keep streaks to unlock'}
+                    </div>
+                  )}
                   {badge.isUnlocked && badge.unlockedAt && (
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.35rem' }}>
-                      Unlocked: {new Date(badge.unlockedAt).toLocaleDateString()}
+                      Unlocked: {new Date(badge.unlockedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   )}
                 </div>
@@ -838,10 +905,19 @@ export const ProfilePage = ({ onBackToArena }) => {
                       <td style={{ padding: '0.85rem 1rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
                           <span
-                            className={`badge ${
-                              m.isWinner ? 'badge-success' : m.isDraw ? 'badge-warning' : 'badge-primary'
-                            }`}
-                            style={{ fontSize: '0.65rem' }}
+                            className="badge"
+                            style={{
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              letterSpacing: '0.04em',
+                              background: m.isWinner
+                                ? 'rgba(16, 185, 129, 0.22)'
+                                : m.isDraw
+                                ? 'rgba(245, 158, 11, 0.22)'
+                                : 'rgba(239, 68, 68, 0.22)',
+                              color: m.isWinner ? '#6ee7b7' : m.isDraw ? '#fcd34d' : '#fca5a5',
+                              border: `1px solid ${m.isWinner ? '#10b981' : m.isDraw ? '#f59e0b' : '#ef4444'}`,
+                            }}
                           >
                             {m.isWinner ? 'VICTORY' : m.isDraw ? 'DRAW' : 'DEFEAT'}
                           </span>

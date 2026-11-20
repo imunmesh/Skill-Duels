@@ -251,6 +251,9 @@ export const App = () => {
           heading={"Enter the *SkillDuels Arena*\nand dominate the leaderboards."}
           subheading="Compete in real-time 1v1 multiplayer trivia battles across frontend, backend, and cloud stacks."
           cta={{ label: "Enter Arena", href: isAuthenticated ? "/arena" : "/" }}
+          secondaryCta={{ label: "View Leaderboard", href: "/leaderboard" }}
+          compact={isAuthenticated && location.pathname !== '/'}
+          socialTitle="Follow us"
           tagline="Test your speed, knowledge, and intuition. Climb the global ranks and earn elite badges."
           preset="moonlit"
           columns={[
