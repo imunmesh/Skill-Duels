@@ -37,7 +37,9 @@ import {
   AlertCircle,
   Clock,
   ChevronLeft,
+  TrendingUp,
 } from 'lucide-react';
+import { RankUpModal } from '../components/ui/rank-up-modal';
 
 const renderBadgeIcon = (iconName, isUnlocked) => {
   const color = isUnlocked ? '#ffffff' : '#94a3b8';
@@ -75,6 +77,7 @@ export const ProfilePage = ({ onBackToArena }) => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isRankUpOpen, setIsRankUpOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [toastMessage, setToastMessage] = useState('');
@@ -726,6 +729,31 @@ export const ProfilePage = ({ onBackToArena }) => {
             <span>{p.xp || 0} XP earned</span>
             <span style={{ fontWeight: 700, color: '#c7d2fe' }}>{p.rankProgressPercent || 0}% toward next rank</span>
           </div>
+
+          {/* Rank Up Animation Preview Trigger */}
+          <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() => setIsRankUpOpen(true)}
+              style={{
+                background: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                color: '#fcd34d',
+                borderRadius: '8px',
+                padding: '4px 12px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              title="Preview rank promotion celebration effect"
+            >
+              <TrendingUp size={13} color="#f59e0b" />
+              <span>✨ Preview Rank Up (Silver ➔ Gold)</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -898,6 +926,15 @@ export const ProfilePage = ({ onBackToArena }) => {
           </div>
         </div>
       </section>
+
+      {/* Rank Up Celebration Modal */}
+      <RankUpModal
+        isOpen={isRankUpOpen}
+        onClose={() => setIsRankUpOpen(false)}
+        oldRank="Silver"
+        newRank="Gold"
+        newXP={p.xp}
+      />
     </main>
   );
 };

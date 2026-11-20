@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles } from 'lucide-react';
+import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles, TrendingUp } from 'lucide-react';
+import { RankUpModal } from '../components/ui/rank-up-modal';
 
 export const ResultPage = ({ matchResult, onPlayAgain }) => {
   const { user, updateProfileXP } = useAuth();
@@ -13,12 +14,27 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
   const isWinner = matchResult?.winnerId?.toString() === currentUserId;
   const isDraw = matchResult?.isDraw;
 
-  // Sync profile XP locally
+  const [isRankUpOpen, setIsRankUpOpen] = useState(false);
+  const [modalOldRank, setModalOldRank] = useState(playerResult?.oldRank || 'Silver');
+  const [modalNewRank, setModalNewRank] = useState(playerResult?.newRank || 'Gold');
+
+  // Sync profile XP locally & auto-trigger Rank Up if achieved
   useEffect(() => {
     if (playerResult?.newTotalXP) {
       updateProfileXP(playerResult.newTotalXP);
     }
+    if (playerResult?.isRankUp) {
+      setModalOldRank(playerResult.oldRank || 'Silver');
+      setModalNewRank(playerResult.newRank || 'Gold');
+      setIsRankUpOpen(true);
+    }
   }, [playerResult, updateProfileXP]);
+
+  const handlePreviewRankUp = (from = 'Silver', to = 'Gold') => {
+    setModalOldRank(from);
+    setModalNewRank(to);
+    setIsRankUpOpen(true);
+  };
 
   return (
     <main className="container" style={{ maxWidth: 720, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
@@ -142,28 +158,49 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
           </div>
         </div>
 
-        {/* XP Gains (FR-02) */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            background: 'rgba(245, 158, 11, 0.12)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: '0.85rem 1.75rem',
-            marginBottom: '2.5rem',
-          }}
-        >
-          <Zap size={22} color="#f59e0b" />
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#fcd34d' }}>
-              +{playerResult?.xpAwarded || 15} XP Earned
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Profile Total: {playerResult?.newTotalXP ?? user?.xp ?? 0} XP
+        {/* XP Gains & Rank Up Banner */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem', marginBottom: '2.5rem' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.85rem 1.75rem',
+            }}
+          >
+            <Zap size={22} color="#f59e0b" />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#fcd34d' }}>
+                +{playerResult?.xpAwarded || 15} XP Earned
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Profile Total: {playerResult?.newTotalXP ?? user?.xp ?? 0} XP
+              </div>
             </div>
           </div>
+
+          {/* Interactive Rank-Up Animation Preview Button */}
+          <button
+            type="button"
+            onClick={() => handlePreviewRankUp('Silver', 'Gold')}
+            className="btn btn-secondary"
+            style={{
+              padding: '0.45rem 1rem',
+              fontSize: '0.85rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              borderColor: 'rgba(245, 158, 11, 0.4)',
+              color: '#fcd34d',
+            }}
+            title="Preview rank-up animation effect"
+          >
+            <TrendingUp size={15} color="#f59e0b" />
+            <span>✨ Preview Rank Up Animation (Silver ➔ Gold)</span>
+          </button>
         </div>
 
         {/* Action Button */}
@@ -180,6 +217,15 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
           </button>
         </div>
       </div>
+
+      {/* Rank Up Celebration Modal */}
+      <RankUpModal
+        isOpen={isRankUpOpen}
+        onClose={() => setIsRankUpOpen(false)}
+        oldRank={modalOldRank}
+        newRank={modalNewRank}
+        newXP={playerResult?.newTotalXP ?? user?.xp}
+      />
     </main>
   );
 };

@@ -387,8 +387,12 @@ class MatchManager {
         username: p.username,
         score: p.score,
         isWinner: p.userId === winnerId,
-        xpAwarded: xpAwards[p.userId]?.xpAwarded || 0,
+        xpAwarded: xpAwards[p.userId]?.totalXpGain || xpAwards[p.userId]?.xpAwarded || 0,
         newTotalXP: xpAwards[p.userId]?.newTotalXP,
+        oldRank: xpAwards[p.userId]?.oldRank,
+        newRank: xpAwards[p.userId]?.rank,
+        isRankUp: Boolean(xpAwards[p.userId]?.isRankUp),
+        newBadges: xpAwards[p.userId]?.newBadges || [],
       })),
     };
 
