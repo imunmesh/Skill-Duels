@@ -227,8 +227,8 @@ export const App = () => {
   if (showLoginIntro || (isAuthenticated && location.pathname === '/welcome')) {
     return (
       <MetroHero
-        title="THE CITY OPENS"
-        tagline="Every door in the city is already open. Welcome to SkillDuels."
+        title="ENTER THE ARENA"
+        tagline="1v1 Real-Time Multiplayer Trivia. Rise to Conqueror."
         scrollHint="SCROLL TO ENTER"
         onComplete={handleFinishLoginIntro}
       />
@@ -267,8 +267,8 @@ export const App = () => {
           path="/welcome"
           element={
             <MetroHero
-              title="THE CITY OPENS"
-              tagline="Every door in the city is already open. Welcome to SkillDuels."
+              title="ENTER THE ARENA"
+              tagline="1v1 Real-Time Multiplayer Trivia. Rise to Conqueror."
               scrollHint="SCROLL TO ENTER"
               onComplete={handleFinishLoginIntro}
             />

@@ -28,7 +28,7 @@ export interface MetroHeroProps {
 }
 
 const DEFAULT_VIDEO = "https://cdn.21st.dev/assets/mirror/21/21a77eac28eacbb7e142016eefeaa0b4a766619e51113629a3bc6df6af066c0f.mp4"
-const DEFAULT_SIGNATURE = { name: "guglielmogiannattasio.exe", url: "https://www.guglielmogiannattasio.it" }
+const DEFAULT_SIGNATURE = { name: "SkillDuels • Live 1v1 Arena", url: "/arena" }
 const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
 
 const COL_BG = "#05070d"
@@ -40,11 +40,11 @@ function clamp(v: number, min: number, max: number) {
 
 export default function MetroHero({
   videoSrc = DEFAULT_VIDEO,
-  title = "THE CITY OPENS",
-  scrollHint = "SCROLL",
-  tagline = "Every door in the city is already open.",
+  title = "ENTER THE ARENA",
+  scrollHint = "SCROLL TO ENTER",
+  tagline = "1v1 Real-Time Multiplayer Trivia. Rise to Conqueror.",
   signature = DEFAULT_SIGNATURE,
-  scrubDistance = 3200,
+  scrubDistance = 3000,
   className,
   style,
   onComplete,
