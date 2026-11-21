@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { leaderboardAPI } from '../services/api';
 import { ChevronLeft, Flame, Trophy, Zap, Shield, Sparkles } from 'lucide-react';
-import PodiumLeaderboard from '../components/ui/podium-leaderboard';
+import PodiumLeaderboard, { normalizeTier } from '../components/ui/podium-leaderboard';
 import { getAvatarUrl } from '../utils/avatar';
 
 export const LeaderboardPage = ({ onBackToArena }) => {
@@ -143,7 +143,7 @@ export const LeaderboardPage = ({ onBackToArena }) => {
                   {user?.displayName || user?.username}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  {user?.rank || 'Bronze'} &bull; <strong style={{ color: '#818cf8' }}>Rank #{myEntry?.position || '—'}</strong>
+                  {normalizeTier(user?.rank, user?.xp || 0)} &bull; <strong style={{ color: '#818cf8' }}>Rank #{myEntry?.position || '—'}</strong>
                 </div>
               </div>
             </div>

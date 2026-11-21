@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { leaderboardAPI, profileAPI } from '../services/api';
 import { getAvatarUrl } from '../utils/avatar';
+import { normalizeTier } from '../components/ui/podium-leaderboard';
 import {
   Dialog,
   DialogClose,
@@ -239,16 +240,21 @@ export const ProfilePage = ({ onBackToArena }) => {
     }
   };
 
-  const p = profileData || {
-    xp: user?.xp || 0,
-    rank: user?.rank || 'Bronze',
-    globalPosition: 1,
-    xpToNextRank: 100,
-    rankProgressPercent: 25,
-    streak: { current: 1, highest: 1 },
-    badges: [],
-    recentMatches: [],
-  };
+  const p = profileData
+    ? {
+        ...profileData,
+        rank: normalizeTier(profileData.rank, profileData.xp || user?.xp || 0),
+      }
+    : {
+        xp: user?.xp || 0,
+        rank: normalizeTier(user?.rank, user?.xp || 0),
+        globalPosition: 1,
+        xpToNextRank: 100,
+        rankProgressPercent: 25,
+        streak: { current: 1, highest: 1 },
+        badges: [],
+        recentMatches: [],
+      };
 
   const userInitial = (user?.displayName || user?.username || 'U').charAt(0).toUpperCase();
 

@@ -40,6 +40,28 @@ export const calculateLevel = (xp: number = 0): number => {
   return Math.max(1, Math.floor(Math.sqrt(xp / 20)) + 1);
 };
 
+const CANONICAL_TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ace', 'Conqueror'];
+const LEGACY_TIER_MAP: Record<string, string> = {
+  Novice: 'Bronze',
+  Apprentice: 'Silver',
+  Warrior: 'Gold',
+  Master: 'Platinum',
+  Grandmaster: 'Conqueror',
+};
+
+export const normalizeTier = (rank?: string, xp: number = 0): string => {
+  if (rank && CANONICAL_TIERS.includes(rank)) return rank;
+  if (rank && LEGACY_TIER_MAP[rank]) return LEGACY_TIER_MAP[rank];
+  const numXP = Number(xp) || 0;
+  if (numXP >= 3500) return 'Conqueror';
+  if (numXP >= 2000) return 'Ace';
+  if (numXP >= 1000) return 'Diamond';
+  if (numXP >= 600) return 'Platinum';
+  if (numXP >= 300) return 'Gold';
+  if (numXP >= 100) return 'Silver';
+  return 'Bronze';
+};
+
 // Format score into "289.4k" or comma separated
 export const formatScoreK = (num: number = 0): string => {
   if (num >= 1000) {
@@ -713,7 +735,7 @@ export default function PodiumLeaderboard({
               String(player.id) === String(currentUserId);
             const score = player.xp || player.weeklyXP || 0;
             const level = calculateLevel(player.totalXP || player.xp || 0);
-            const tier = player.rank || "Bronze";
+            const tier = normalizeTier(player.rank, player.totalXP || player.xp || 0);
             const tied = checkTie(idx, filteredPlayers);
 
             return (

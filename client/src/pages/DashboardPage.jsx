@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { leaderboardAPI } from '../services/api';
+import { normalizeTier } from '../components/ui/podium-leaderboard';
 import {
   Trophy,
   Zap,
@@ -101,18 +102,23 @@ export const DashboardPage = () => {
     loadLeaderboard();
   }, [loadLeaderboard]);
 
-  const p = profileData || {
-    xp: user?.xp || 0,
-    weeklyXP: user?.weeklyXP || 0,
-    rank: user?.rank || 'Bronze',
-    globalPosition: 1,
-    xpToNextRank: 100,
-    rankProgressPercent: 25,
-    stats: { matchesPlayed: 0, matchesWon: 0, matchesLost: 0, winRate: 0 },
-    streak: { current: 1, highest: 1 },
-    badges: [],
-    recentMatches: [],
-  };
+  const p = profileData
+    ? {
+        ...profileData,
+        rank: normalizeTier(profileData.rank, profileData.xp || user?.xp || 0),
+      }
+    : {
+        xp: user?.xp || 0,
+        weeklyXP: user?.weeklyXP || 0,
+        rank: normalizeTier(user?.rank, user?.xp || 0),
+        globalPosition: 1,
+        xpToNextRank: 100,
+        rankProgressPercent: 25,
+        stats: { matchesPlayed: 0, matchesWon: 0, matchesLost: 0, winRate: 0 },
+        streak: { current: 1, highest: 1 },
+        badges: [],
+        recentMatches: [],
+      };
 
   return (
     <main className="container" style={{ maxWidth: 1100, paddingTop: '2rem' }}>
@@ -447,7 +453,7 @@ export const DashboardPage = () => {
                           {/* Rank Tier */}
                           <td style={{ padding: '0.85rem 1rem' }}>
                             <span className="badge badge-primary" style={{ fontSize: '0.7rem' }}>
-                              {row.rank}
+                              {normalizeTier(row.rank, row.xp || 0)}
                             </span>
                           </td>
 
