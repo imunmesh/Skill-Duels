@@ -13,6 +13,7 @@ import { AdminPage } from './pages/AdminPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
+import MetroHero from './components/ui/scroll-locked-video-hero';
 
 // Wrapper to pass match ID from route param or saved session state
 const MatchRouteWrapper = ({ activeMatchData, onMatchFinished }) => {
@@ -213,7 +214,9 @@ export const App = () => {
 
   return (
     <>
-      <Navbar currentView={currentView} onNavigate={handleNavbarNavigate} />
+      {location.pathname !== '/welcome' && (
+        <Navbar currentView={currentView} onNavigate={handleNavbarNavigate} />
+      )}
 
       <Routes>
         {/* Public Root Route */}
@@ -229,9 +232,24 @@ export const App = () => {
             ) : (
               <AuthPage
                 onRegisterSuccess={() => navigate('/profile/setup')}
-                onLoginSuccess={(loggedUser) =>
-                  navigate(loggedUser.role === 'admin' ? '/admin' : '/arena')
-                }
+                onLoginSuccess={() => navigate('/welcome')}
+              />
+            )
+          }
+        />
+
+        {/* Post-Login Cinematic Scroll-Locked Video Hero */}
+        <Route
+          path="/welcome"
+          element={
+            !isAuthenticated ? (
+              <Navigate to="/" replace />
+            ) : (
+              <MetroHero
+                title="THE CITY OPENS"
+                tagline="Every door in the city is already open. Welcome to SkillDuels."
+                scrollHint="SCROLL TO ENTER"
+                onComplete={() => navigate(user?.role === 'admin' ? '/admin' : '/arena')}
               />
             )
           }
@@ -373,7 +391,7 @@ export const App = () => {
           - Full MeadowRiseFooter with rich hero & 4 columns ONLY on landing/login (unauthenticated '/')
           - Sleek one-line MinimalFooter on authenticated app pages (/arena, /profile, /leaderboard, /admin)
       */}
-      {!location.pathname.startsWith('/match') && (
+      {!location.pathname.startsWith('/match') && location.pathname !== '/welcome' && (
         !isAuthenticated && location.pathname === '/' ? (
           <MeadowRiseFooter
             name="SkillDuels"
