@@ -14,6 +14,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import MetroHero from './components/ui/scroll-locked-video-hero';
+import PromptingIsAllYouNeed from './components/ui/animated-hero-section';
 
 // Wrapper to pass match ID from route param or saved session state
 const MatchRouteWrapper = ({ activeMatchData, onMatchFinished }) => {
@@ -243,6 +244,21 @@ export const App = () => {
 
   return (
     <>
+      {/* Background Animated Hero Pong Game Canvas across the entire site */}
+      {location.pathname !== '/welcome' && (
+        <PromptingIsAllYouNeed
+          words={["SKILLDUELS", "1V1 ARENA"]}
+          color="#818cf8"
+          hitColor="rgba(99, 102, 241, 0.16)"
+          backgroundColor="transparent"
+          ballColor="#38bdf8"
+          paddleColor="#6366f1"
+          opacity={0.16}
+          className="fixed inset-0 pointer-events-none"
+          style={{ zIndex: 0 }}
+        />
+      )}
+
       <Navbar currentView={currentView} onNavigate={handleNavbarNavigate} />
 
       <Routes>
@@ -407,6 +423,26 @@ export const App = () => {
             ) : (
               <AdminPage />
             )
+          }
+        />
+
+        {/* Standalone Fullscreen Pong Game Playground Route */}
+        <Route
+          path="/game"
+          element={
+            <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 64px)', background: '#000000', overflow: 'hidden' }}>
+              <PromptingIsAllYouNeed
+                words={["SKILLDUELS", "1V1 ARENA"]}
+                color="#ffffff"
+                hitColor="#333333"
+                backgroundColor="#000000"
+                ballColor="#ffffff"
+                paddleColor="#ffffff"
+                opacity={1}
+                className="w-full h-full"
+                style={{ position: 'relative', zIndex: 1 }}
+              />
+            </div>
           }
         />
 

@@ -63,7 +63,7 @@ export const AuthPage = ({ onRegisterSuccess, onLoginSuccess }) => {
         justifyContent: 'flex-start',
         width: '100%',
         minHeight: '100vh',
-        background: '#0b0f19',
+        background: 'transparent',
       }}
     >
       {/* Interactive Sliding AuthSwitch Component */}
