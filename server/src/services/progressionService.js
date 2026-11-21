@@ -171,6 +171,7 @@ const processMatchProgression = async ({
   winnerId,
   reason = 'normal',
   totalQuestions = 5,
+  questionIds = [],
 }) => {
   const isDraw = winnerId === null;
 
@@ -388,8 +389,8 @@ const processMatchProgression = async ({
       isDraw,
       reason,
       totalQuestions: totalQuestions || 5,
-      questionIds: Array.isArray(params.questionIds)
-        ? params.questionIds.map((id) => new mongoose.Types.ObjectId(id))
+      questionIds: Array.isArray(questionIds)
+        ? questionIds.map((id) => new mongoose.Types.ObjectId(id))
         : [],
     });
 

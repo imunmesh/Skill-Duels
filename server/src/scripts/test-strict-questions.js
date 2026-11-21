@@ -21,7 +21,6 @@ const Question = require('../models/Question');
 const { QUESTIONS_PER_MATCH, ERROR_CODES } = require('../config/constants');
 const { getPlayableQuestions, checkCategoryPlayable } = require('../socket/questionService');
 const matchManager = require('../socket/matchManager');
-const matchmaking = require('../socket/matchmaking');
 
 console.log('================================================================');
 console.log('   SKILLDUELS ACCEPTANCE TESTS: STRICT QUESTION RULES');

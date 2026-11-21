@@ -59,7 +59,7 @@ const resolveCategory = async (categoryIdentifier) => {
  * @returns {Promise<{ playable: boolean, questionCount: number, categoryName: string, categoryId: string|null, error?: CategoryQuestionError }>}
  */
 const checkCategoryPlayable = async (categoryIdentifier) => {
-  const { catId, categoryName, slug } = await resolveCategory(categoryIdentifier);
+  const { catId, categoryName } = await resolveCategory(categoryIdentifier);
 
   if (!catId) {
     const error = new CategoryQuestionError(
@@ -236,7 +236,7 @@ const sanitizeQuestionForClient = (question, index, total) => {
 /**
  * Backward-compatible helper for existing callers
  */
-const fetchMatchQuestions = async (category, count = QUESTIONS_PER_MATCH) => {
+const fetchMatchQuestions = async (category, _count = QUESTIONS_PER_MATCH) => {
   return getPlayableQuestions(category);
 };
 
