@@ -168,7 +168,7 @@ export const App = () => {
   // Modal dialog state for footer informational links
   const [activeModal, setActiveModal] = useState(null);
 
-  // Cinematic scroll-locked video hero state immediately after login
+  // Cinematic scroll-locked video hero state immediately after login or sign up
   const [showLoginIntro, setShowLoginIntro] = useState(() => {
     return sessionStorage.getItem('skillduels_show_welcome') === 'true';
   });
@@ -176,7 +176,13 @@ export const App = () => {
   const handleFinishLoginIntro = () => {
     sessionStorage.removeItem('skillduels_show_welcome');
     setShowLoginIntro(false);
-    navigate(user?.role === 'admin' ? '/admin' : '/arena');
+    const wasPostRegister = sessionStorage.getItem('skillduels_post_register') === 'true';
+    sessionStorage.removeItem('skillduels_post_register');
+    if (wasPostRegister) {
+      navigate('/profile/setup');
+    } else {
+      navigate(user?.role === 'admin' ? '/admin' : '/arena');
+    }
   };
 
   // Listen for socket reconnection opportunities from server
@@ -252,9 +258,14 @@ export const App = () => {
               )
             ) : (
               <AuthPage
-                onRegisterSuccess={() => navigate('/profile/setup')}
+                onRegisterSuccess={() => {
+                  sessionStorage.setItem('skillduels_show_welcome', 'true');
+                  sessionStorage.setItem('skillduels_post_register', 'true');
+                  setShowLoginIntro(true);
+                }}
                 onLoginSuccess={() => {
                   sessionStorage.setItem('skillduels_show_welcome', 'true');
+                  sessionStorage.removeItem('skillduels_post_register');
                   setShowLoginIntro(true);
                 }}
               />
