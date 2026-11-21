@@ -86,6 +86,12 @@ export default function MetroHero({
       }
     }
     video.addEventListener("loadeddata", onLoadedData)
+    video.addEventListener("loadedmetadata", onLoadedData)
+    video.addEventListener("canplay", onLoadedData)
+
+    if (video.readyState >= 2 || video.duration > 0) {
+      onLoadedData()
+    }
 
     // iOS Safari often won't buffer any video data — even with
     // preload="auto" — until playback actually starts, to save mobile
@@ -221,6 +227,10 @@ export default function MetroHero({
         progressBarRef.current.style.transform = `scaleX(${currentProgress})`
       }
 
+      if (currentProgress >= 0.96 && onComplete) {
+        onComplete()
+      }
+
       rafId = requestAnimationFrame(frame)
     }
 
@@ -230,6 +240,8 @@ export default function MetroHero({
 
     return () => {
       video.removeEventListener("loadeddata", onLoadedData)
+      video.removeEventListener("loadedmetadata", onLoadedData)
+      video.removeEventListener("canplay", onLoadedData)
       video.removeEventListener("seeked", onSeeked)
       window.removeEventListener("wheel", onWheel)
       window.removeEventListener("touchstart", onTouchStart)

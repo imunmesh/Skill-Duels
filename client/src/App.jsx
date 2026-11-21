@@ -168,6 +168,17 @@ export const App = () => {
   // Modal dialog state for footer informational links
   const [activeModal, setActiveModal] = useState(null);
 
+  // Cinematic scroll-locked video hero state immediately after login
+  const [showLoginIntro, setShowLoginIntro] = useState(() => {
+    return sessionStorage.getItem('skillduels_show_welcome') === 'true';
+  });
+
+  const handleFinishLoginIntro = () => {
+    sessionStorage.removeItem('skillduels_show_welcome');
+    setShowLoginIntro(false);
+    navigate(user?.role === 'admin' ? '/admin' : '/arena');
+  };
+
   // Listen for socket reconnection opportunities from server
   useEffect(() => {
     if (!socket) return;
@@ -212,11 +223,21 @@ export const App = () => {
     navigate(`/${view}`);
   };
 
+  // Immediate full-screen scroll-locked video hero right after login
+  if (showLoginIntro || (isAuthenticated && location.pathname === '/welcome')) {
+    return (
+      <MetroHero
+        title="THE CITY OPENS"
+        tagline="Every door in the city is already open. Welcome to SkillDuels."
+        scrollHint="SCROLL TO ENTER"
+        onComplete={handleFinishLoginIntro}
+      />
+    );
+  }
+
   return (
     <>
-      {location.pathname !== '/welcome' && (
-        <Navbar currentView={currentView} onNavigate={handleNavbarNavigate} />
-      )}
+      <Navbar currentView={currentView} onNavigate={handleNavbarNavigate} />
 
       <Routes>
         {/* Public Root Route */}
@@ -232,26 +253,25 @@ export const App = () => {
             ) : (
               <AuthPage
                 onRegisterSuccess={() => navigate('/profile/setup')}
-                onLoginSuccess={() => navigate('/welcome')}
+                onLoginSuccess={() => {
+                  sessionStorage.setItem('skillduels_show_welcome', 'true');
+                  setShowLoginIntro(true);
+                }}
               />
             )
           }
         />
 
-        {/* Post-Login Cinematic Scroll-Locked Video Hero */}
+        {/* Post-Login Cinematic Scroll-Locked Video Hero Route */}
         <Route
           path="/welcome"
           element={
-            !isAuthenticated ? (
-              <Navigate to="/" replace />
-            ) : (
-              <MetroHero
-                title="THE CITY OPENS"
-                tagline="Every door in the city is already open. Welcome to SkillDuels."
-                scrollHint="SCROLL TO ENTER"
-                onComplete={() => navigate(user?.role === 'admin' ? '/admin' : '/arena')}
-              />
-            )
+            <MetroHero
+              title="THE CITY OPENS"
+              tagline="Every door in the city is already open. Welcome to SkillDuels."
+              scrollHint="SCROLL TO ENTER"
+              onComplete={handleFinishLoginIntro}
+            />
           }
         />
 
