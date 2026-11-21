@@ -29,6 +29,7 @@ const calculateRank = (xp) => {
 
 /**
  * Available Badges Catalog (FR-10)
+ * Each badge has a distinct Lucide icon, description, and canonical requirement definition.
  */
 const AVAILABLE_BADGES = {
   first_duel: {
@@ -36,78 +37,91 @@ const AVAILABLE_BADGES = {
     name: 'Arena Initiate',
     description: 'Completed your first 1v1 quiz duel in SkillDuels',
     icon: 'swords',
+    requirement: 'Play 1 duel',
   },
   first_win: {
     badgeId: 'first_win',
     name: 'First Blood',
     description: 'Claimed your first victory in a head-to-head match',
-    icon: 'trophy',
+    icon: 'target',
+    requirement: 'Win 1 duel',
   },
   flawless: {
     badgeId: 'flawless',
     name: 'Flawless Victory',
     description: 'Won a duel with a 100% perfect question accuracy score',
     icon: 'sparkles',
+    requirement: 'Win a duel without a wrong answer',
   },
   speed_demon: {
     badgeId: 'speed_demon',
     name: 'Lightning Reflexes',
     description: 'Answered correctly in under 3 seconds with max speed bonus',
     icon: 'zap',
+    requirement: 'Answer correctly with 7s+ remaining',
   },
   streak_3: {
     badgeId: 'streak_3',
     name: 'On Fire',
     description: 'Maintained a 3-day active participation streak',
     icon: 'flame',
+    requirement: '3-day streak',
   },
   streak_7: {
     badgeId: 'streak_7',
     name: 'Unstoppable Legend',
     description: 'Achieved a 7-day competitive participation streak',
-    icon: 'fire',
+    icon: 'award',
+    requirement: '7-day streak',
   },
   fair_play: {
     badgeId: 'fair_play',
     name: 'Honorable Duelist',
     description: 'Maintained 100% fair play with zero anti-cheat tab warnings',
     icon: 'shield-check',
+    requirement: 'Finish match with 0 tab warnings',
   },
   centurion: {
     badgeId: 'centurion',
     name: 'Silver Centurion',
     description: 'Accumulated 100 or more lifetime XP and reached Silver tier',
     icon: 'shield',
+    requirement: 'Reach Silver tier (100 XP)',
   },
   gold: {
     badgeId: 'gold',
     name: 'Gold Gladiator',
     description: 'Attained Gold rank with 300+ XP',
     icon: 'trophy',
+    requirement: 'Reach Gold tier (300 XP)',
   },
   veteran: {
     badgeId: 'veteran',
     name: 'Platinum Duelist',
     description: 'Attained Platinum rank with 600+ XP',
     icon: 'medal',
+    requirement: 'Reach Platinum tier (600 XP)',
   },
   master: {
     badgeId: 'master',
     name: 'Diamond Master',
     description: 'Surpassed 1,000+ XP and dominated Diamond lobbies',
     icon: 'diamond',
+    requirement: 'Reach Diamond tier (1,000 XP)',
   },
   ace: {
     badgeId: 'ace',
     name: 'Ace Champion',
     description: 'Reached 2,000+ XP and earned the prestigious Ace tier',
-    icon: 'zap',
+    icon: 'star',
+    requirement: 'Reach Ace tier (2,000 XP)',
   },
   grandmaster: {
     badgeId: 'grandmaster',
     name: 'Conqueror Supreme',
     description: 'Ascended to the highest echelon (3,500+ XP) — True Conqueror',
     icon: 'crown',
+    requirement: 'Reach Conqueror tier (3,500 XP)',
   },
 };
 
@@ -165,12 +179,38 @@ const processMatchProgression = async ({
   let p2BaseXP = 0;
 
   if (reason === 'opponent_forfeit' || reason === 'tab_switch_forfeit') {
-    if (winnerId === player1.userId) {
-      p1BaseXP = 50;
-      p2BaseXP = 0; // Disqualified / kicked player gets 0 XP
+    // Anti-exploit: Reduced XP for forfeit wins (+10 XP if >= 2 questions answered, 0 if < 2)
+    // Disqualified or disconnected player receives 0 XP
+    const isP1Winner = winnerId === player1.userId;
+    const winnerPlayer = isP1Winner ? player1 : player2;
+    const answeredCount = winnerPlayer && winnerPlayer.answers ? Object.keys(winnerPlayer.answers).length : 0;
+
+    let forfeitWinXP = answeredCount >= 2 ? 10 : 0;
+
+    // Daily forfeit XP cap (max 3 forfeit wins awarded XP per day to prevent collusion)
+    if (forfeitWinXP > 0 && mongoose.connection.readyState === 1 && winnerPlayer?.userId) {
+      try {
+        const todayStart = new Date();
+        todayStart.setUTCHours(0, 0, 0, 0);
+        const todayForfeitWins = await Match.countDocuments({
+          winnerId: winnerPlayer.userId,
+          reason: { $in: ['opponent_forfeit', 'tab_switch_forfeit'] },
+          createdAt: { $gte: todayStart },
+        });
+        if (todayForfeitWins >= 3) {
+          forfeitWinXP = 0;
+        }
+      } catch (capErr) {
+        console.warn('[Progression] Daily forfeit cap check error:', capErr.message);
+      }
+    }
+
+    if (isP1Winner) {
+      p1BaseXP = forfeitWinXP;
+      p2BaseXP = 0;
     } else {
       p1BaseXP = 0;
-      p2BaseXP = 50;
+      p2BaseXP = forfeitWinXP;
     }
   } else if (isDraw) {
     p1BaseXP = 25;
@@ -348,6 +388,9 @@ const processMatchProgression = async ({
       isDraw,
       reason,
       totalQuestions: totalQuestions || 5,
+      questionIds: Array.isArray(params.questionIds)
+        ? params.questionIds.map((id) => new mongoose.Types.ObjectId(id))
+        : [],
     });
 
     console.log(`[Progression Service] Match ${matchId} persisted. Ranks and XP synchronized.`);

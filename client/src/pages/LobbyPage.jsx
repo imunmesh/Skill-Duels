@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { categoryAPI } from '../services/api';
-import { Swords, Code, Brain, Compass, Globe, Layers, Sparkles, Loader2, AlertCircle, Cpu } from 'lucide-react';
+import { QUESTIONS_PER_MATCH, ERROR_CODES } from '../constants/rules';
+import { Swords, Code, Brain, Compass, Globe, Layers, Sparkles, Loader2, AlertCircle, AlertTriangle, Cpu, X } from 'lucide-react';
 import InfoCard from '../components/ui/info-card';
 import RainingLetters, { ScrambledTitle } from '../components/ui/modern-animated-hero-section';
 
@@ -36,6 +37,8 @@ const CANONICAL_CATEGORIES = [
     description: 'Arrays, trees, graphs, sorting, searching, and asymptotic Big-O analysis.',
     icon: 'Layers',
     color: '#a855f7',
+    questionCount: 0,
+    playable: false,
   },
   {
     _id: 'logical',
@@ -45,6 +48,8 @@ const CANONICAL_CATEGORIES = [
     description: 'Sequences, patterns, deductions, syllogisms, and critical reasoning.',
     icon: 'Brain',
     color: '#f59e0b',
+    questionCount: 0,
+    playable: false,
   },
   {
     _id: 'ml',
@@ -54,6 +59,8 @@ const CANONICAL_CATEGORIES = [
     description: 'Supervised learning, neural networks, classification, gradient descent, and model evaluation metrics.',
     icon: 'Cpu',
     color: '#6366f1',
+    questionCount: 0,
+    playable: false,
   },
   {
     _id: 'aptitude',
@@ -63,6 +70,8 @@ const CANONICAL_CATEGORIES = [
     description: 'Arithmetic, speed, distance, time, percentages, and problem solving.',
     icon: 'Compass',
     color: '#10b981',
+    questionCount: 0,
+    playable: false,
   },
   {
     _id: 'technical',
@@ -72,6 +81,8 @@ const CANONICAL_CATEGORIES = [
     description: 'Core computer science fundamentals, OS, memory, and programming concepts.',
     icon: 'Code',
     color: '#6366f1',
+    questionCount: 0,
+    playable: false,
   },
   {
     _id: 'web-dev',
@@ -81,6 +92,8 @@ const CANONICAL_CATEGORIES = [
     description: 'HTML5, CSS3, modern JavaScript, browser DOM, and HTTP protocols.',
     icon: 'Globe',
     color: '#06b6d4',
+    questionCount: 0,
+    playable: false,
   },
 ];
 
@@ -95,7 +108,16 @@ export const LobbyPage = ({ onMatchFound }) => {
   const [searchTime, setSearchTime] = useState(0);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
-  // Load real categories from MongoDB API (FR-08)
+  // Match Error Feedback (Toast + Inline banner)
+  const [matchError, setMatchError] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 5000);
+  };
+
+  // Load real categories with questionCount & playable flag from MongoDB API (FR-08)
   const loadLiveCategories = useCallback(async () => {
     try {
       const res = await categoryAPI.getAll(false);
@@ -104,11 +126,23 @@ export const LobbyPage = ({ onMatchFound }) => {
         const dbMap = new Map(res.categories.map((c) => [c.slug, c]));
         catList = CANONICAL_CATEGORIES.map((canonical) => {
           const fromDb = dbMap.get(canonical.slug);
-          return fromDb ? { ...canonical, ...fromDb, name: canonical.name } : canonical;
+          return fromDb
+            ? {
+                ...canonical,
+                ...fromDb,
+                name: canonical.name,
+                questionCount: fromDb.questionCount ?? 0,
+                playable: fromDb.playable ?? (fromDb.questionCount >= QUESTIONS_PER_MATCH),
+              }
+            : canonical;
         });
         res.categories.forEach((c) => {
           if (!catList.find((item) => item.slug === c.slug)) {
-            catList.push(c);
+            catList.push({
+              ...c,
+              questionCount: c.questionCount ?? 0,
+              playable: c.playable ?? (c.questionCount >= QUESTIONS_PER_MATCH),
+            });
           }
         });
       }
@@ -124,16 +158,24 @@ export const LobbyPage = ({ onMatchFound }) => {
       });
 
       setCategories(catList);
+
+      // Auto-select preferred category if valid and playable, otherwise keep match or first playable
       const match = categoryParam && catList.find((c) => c.slug === categoryParam);
-      setSelectedCategory(match ? match.slug : 'dsa');
+      if (match && match.playable) {
+        setSelectedCategory(match.slug);
+      } else if (!catList.find((c) => c.slug === selectedCategory)?.playable) {
+        const firstPlayable = catList.find((c) => c.playable);
+        if (firstPlayable) {
+          setSelectedCategory(firstPlayable.slug);
+        }
+      }
     } catch (err) {
       console.error('[Lobby] Failed to load categories from database:', err);
       setCategories(CANONICAL_CATEGORIES);
-      setSelectedCategory(categoryParam || 'dsa');
     } finally {
       setLoadingCategories(false);
     }
-  }, [categoryParam]);
+  }, [categoryParam, selectedCategory]);
 
   useEffect(() => {
     loadLiveCategories();
@@ -143,7 +185,7 @@ export const LobbyPage = ({ onMatchFound }) => {
   useEffect(() => {
     if (categoryParam && categories.length > 0) {
       const match = categories.find((c) => c.slug === categoryParam);
-      if (match && selectedCategory !== match.slug) {
+      if (match && selectedCategory !== match.slug && match.playable) {
         setSelectedCategory(match.slug);
       }
     }
@@ -166,32 +208,77 @@ export const LobbyPage = ({ onMatchFound }) => {
   useEffect(() => {
     if (!socket) return;
 
-    const handleMatchStart = (matchData) => {
-      console.log('[Lobby] Real match paired by server:', matchData);
+    const handleMatchFound = (matchData) => {
+      console.log('[Lobby] Match verified and paired by server:', matchData);
       setIsSearching(false);
+      setMatchError(null);
       onMatchFound(matchData);
+    };
+
+    const handleMatchError = (data) => {
+      console.warn('[Lobby] Battle queue error:', data);
+      setIsSearching(false);
+
+      let msg = data?.message || 'Cannot start duel.';
+      if (data?.code === ERROR_CODES.CATEGORY_HAS_NO_QUESTIONS) {
+        msg = `No questions found for ${data.category || 'this category'}. Please choose another category or check back later.`;
+      } else if (data?.code === ERROR_CODES.CATEGORY_NOT_ENOUGH_QUESTIONS) {
+        msg = `${data.category || 'This category'} doesn't have enough questions yet (${data.available || 0} of ${data.required || QUESTIONS_PER_MATCH}).`;
+      }
+
+      setMatchError(msg);
+      showToast(msg);
+
+      // Refresh category counts from server
+      loadLiveCategories();
     };
 
     const handleQueueLeft = () => {
       setIsSearching(false);
     };
 
-    socket.on('match_start', handleMatchStart);
+    socket.on('matchFound', handleMatchFound);
+    socket.on('match_start', handleMatchFound);
+    socket.on('matchError', handleMatchError);
+    socket.on('queue_error', handleMatchError);
     socket.on('queue_left', handleQueueLeft);
 
     return () => {
-      socket.off('match_start', handleMatchStart);
+      socket.off('matchFound', handleMatchFound);
+      socket.off('match_start', handleMatchFound);
+      socket.off('matchError', handleMatchError);
+      socket.off('queue_error', handleMatchError);
       socket.off('queue_left', handleQueueLeft);
     };
-  }, [socket, onMatchFound]);
+  }, [socket, onMatchFound, loadLiveCategories]);
+
+  const selectedCategoryDoc = categories.find((c) => c.slug === selectedCategory);
+  const isSelectedPlayable = Boolean(
+    selectedCategoryDoc &&
+      (selectedCategoryDoc.playable !== false) &&
+      (selectedCategoryDoc.questionCount === undefined || selectedCategoryDoc.questionCount >= QUESTIONS_PER_MATCH)
+  );
 
   const handleStartSearch = () => {
+    if (isSearching) return; // Prevent double click
+
+    if (!selectedCategoryDoc || !isSelectedPlayable) {
+      const msg = selectedCategoryDoc?.questionCount === 0
+        ? `No questions found for ${selectedCategoryDoc?.name || 'this category'}. Please choose another category or check back later.`
+        : `${selectedCategoryDoc?.name || 'This category'} doesn't have enough questions yet (${selectedCategoryDoc?.questionCount || 0} of ${QUESTIONS_PER_MATCH}).`;
+      setMatchError(msg);
+      showToast(msg);
+      return;
+    }
+
     if (!socket || !connected) {
       alert('Connecting to live battle server... Please ensure backend is running.');
       return;
     }
+
+    setMatchError(null);
     setIsSearching(true);
-    socket.emit('join_queue', { category: selectedCategory });
+    socket.emit('findOpponent', { category: selectedCategory });
   };
 
   const handleCancelSearch = () => {
@@ -202,6 +289,46 @@ export const LobbyPage = ({ onMatchFound }) => {
 
   return (
     <div style={{ position: 'relative', minHeight: '100%' }}>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 24,
+            right: 24,
+            zIndex: 9999,
+            backgroundColor: '#ef4444',
+            color: '#ffffff',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
+            fontSize: '13px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            maxWidth: 420,
+          }}
+        >
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{toastMessage}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#ffffff',
+              cursor: 'pointer',
+              marginLeft: 'auto',
+              padding: 2,
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Ambient Matrix Raining Letters Animation inside Arena */}
       <div
         style={{
@@ -249,7 +376,7 @@ export const LobbyPage = ({ onMatchFound }) => {
           min-height: 195px;
           display: flex;
           flex-direction: column;
-          justify-content: flex-start;
+          justifyContent: flex-start;
           text-align: left;
           position: relative;
           cursor: pointer;
@@ -276,6 +403,41 @@ export const LobbyPage = ({ onMatchFound }) => {
           <div>
             <strong>Connecting to live game server...</strong> {connectionError || 'Make sure the backend is running on port 5000.'}
           </div>
+        </div>
+      )}
+
+      {/* Match Error Inline Notice */}
+      {matchError && (
+        <div
+          className="alert alert-warning"
+          role="alert"
+          style={{
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: 'rgba(245, 158, 11, 0.15)',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            color: '#fbbf24',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <AlertTriangle size={20} style={{ flexShrink: 0 }} />
+            <span>{matchError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMatchError(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fbbf24',
+              cursor: 'pointer',
+              padding: 4,
+            }}
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
@@ -343,7 +505,7 @@ export const LobbyPage = ({ onMatchFound }) => {
             Searching… 14 in queue
           </h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-            Category: <strong style={{ color: '#818cf8', textTransform: 'capitalize' }}>{categories.find((c) => c.slug === selectedCategory)?.name || selectedCategory}</strong>
+            Category: <strong style={{ color: '#818cf8', textTransform: 'capitalize' }}>{selectedCategoryDoc?.name || selectedCategory}</strong>
           </p>
 
           <div
@@ -388,7 +550,7 @@ export const LobbyPage = ({ onMatchFound }) => {
               </div>
             ) : categories.length === 0 ? (
               <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                No active categories found. Please run seed script or create one in the Admin Panel.
+                No active categories found. Please create categories and add questions via the Admin Panel.
               </div>
             ) : (
               <div
@@ -400,28 +562,46 @@ export const LobbyPage = ({ onMatchFound }) => {
                   const Icon = ICON_MAP[cat.icon] || Code;
                   const color = COLOR_MAP[cat.slug] || '#6366f1';
                   const isSelected = selectedCategory === cat.slug;
+                  const isPlayable = Boolean(
+                    cat.playable !== false &&
+                    (cat.questionCount === undefined || cat.questionCount >= QUESTIONS_PER_MATCH)
+                  );
 
                   return (
                     <div
                       key={cat._id || cat.slug}
                       role="radio"
                       aria-checked={isSelected}
+                      aria-disabled={!isPlayable}
                       tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === ' ' || e.key === 'Enter') {
                           e.preventDefault();
-                          setSelectedCategory(cat.slug);
+                          if (isPlayable) setSelectedCategory(cat.slug);
                         }
                       }}
-                      onClick={() => setSelectedCategory(cat.slug)}
-                      style={{ cursor: 'pointer', outline: 'none' }}
+                      onClick={() => {
+                        if (isPlayable) {
+                          setSelectedCategory(cat.slug);
+                          setMatchError(null);
+                        }
+                      }}
+                      style={{ outline: 'none' }}
                     >
                       <InfoCard
                         title={cat.name}
                         description={cat.description || 'Skill domain questions.'}
                         icon={<Icon size={22} strokeWidth={2.2} />}
                         iconColor={color}
-                        selected={isSelected}
+                        selected={isSelected && isPlayable}
+                        questionCount={cat.questionCount}
+                        playable={isPlayable}
+                        minQuestionsRequired={QUESTIONS_PER_MATCH}
+                        ariaDescription={
+                          !isPlayable
+                            ? `Category has ${cat.questionCount || 0} active questions. Minimum ${QUESTIONS_PER_MATCH} required to start battle.`
+                            : undefined
+                        }
                       />
                     </div>
                   );
@@ -449,17 +629,33 @@ export const LobbyPage = ({ onMatchFound }) => {
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 Mode: <strong>1v1 Live Match</strong> &bull; Category:{' '}
                 <strong style={{ color: '#818cf8', textTransform: 'capitalize' }}>
-                  {categories.find((c) => c.slug === selectedCategory)?.name || selectedCategory}
+                  {selectedCategoryDoc?.name || selectedCategory}
                 </strong>
+                {selectedCategoryDoc && (
+                  <span style={{ marginLeft: 8, color: isSelectedPlayable ? '#10b981' : '#f59e0b', fontSize: '0.85rem' }}>
+                    ({selectedCategoryDoc.questionCount || 0} questions available)
+                  </span>
+                )}
               </p>
+              {!isSelectedPlayable && selectedCategoryDoc && (
+                <p style={{ color: '#f59e0b', fontSize: '0.825rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <AlertTriangle size={14} />
+                  <span>This category needs at least {QUESTIONS_PER_MATCH} active questions to start a duel.</span>
+                </p>
+              )}
             </div>
 
             <button
               type="button"
-              disabled={!connected || loadingCategories}
+              disabled={!connected || loadingCategories || !isSelectedPlayable || isSearching}
               onClick={handleStartSearch}
               className="btn btn-primary lobby-action-button"
-              style={{ fontSize: '1.05rem', padding: '0.85rem 2rem' }}
+              style={{
+                fontSize: '1.05rem',
+                padding: '0.85rem 2rem',
+                opacity: (!connected || loadingCategories || !isSelectedPlayable || isSearching) ? 0.5 : 1,
+                cursor: (!connected || loadingCategories || !isSelectedPlayable || isSearching) ? 'not-allowed' : 'pointer',
+              }}
               aria-label="Find an opponent and start duel"
             >
               <Swords size={20} />

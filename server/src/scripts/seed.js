@@ -125,6 +125,11 @@ const QUESTIONS_DATA = {
 };
 
 const seedDatabase = async () => {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[Seed Security] Seeding questions is strictly disabled in production. Questions must be created via Admin Panel.');
+    process.exit(1);
+  }
+
   try {
     console.log(`[Seed] Connecting to MongoDB at ${MONGODB_URI}...`);
     await mongoose.connect(MONGODB_URI);

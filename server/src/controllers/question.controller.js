@@ -1,5 +1,8 @@
 const Question = require('../models/Question');
 const Category = require('../models/Category');
+const matchManager = require('../socket/matchManager');
+const { QUESTIONS_PER_MATCH, ERROR_CODES } = require('../config/constants');
+const { getPlayableQuestions, sanitizeQuestionForClient } = require('../socket/questionService');
 
 /**
  * @desc    Get questions with pagination and filters (FR-09)
@@ -80,43 +83,69 @@ const createQuestion = async (req, res, next) => {
   try {
     const { text, options, correctIndex, category, difficulty, timeLimit, points, explanation } = req.body;
 
-    // 1. Validate required fields
-    if (!text || !options || correctIndex === undefined || !category) {
+    // 1. Validate category required
+    if (!category) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide text, options array, correctIndex, and category ID',
+        message: 'Category reference is required',
       });
     }
 
-    // 2. Validate options and correctIndex
-    if (!Array.isArray(options) || options.length < 2 || options.length > 6) {
+    // 2. Validate question prompt text required
+    if (!text || !text.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Options must be an array with 2 to 6 choices',
+        message: 'Question prompt text is required',
       });
     }
 
+    // 3. Validate exactly 4 options required
+    if (!Array.isArray(options) || options.length !== 4) {
+      return res.status(400).json({
+        success: false,
+        message: 'Questions must have exactly 4 answer options',
+      });
+    }
+
+    // 4. Validate non-empty options
+    if (options.some((opt) => typeof opt !== 'string' || !opt.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'All 4 answer options must be non-empty strings',
+      });
+    }
+
+    // 5. Validate NO duplicate options
+    const normalizedOptions = options.map((opt) => opt.trim().toLowerCase());
+    if (new Set(normalizedOptions).size !== 4) {
+      return res.status(400).json({
+        success: false,
+        message: 'Options must be unique. Duplicate answers are not permitted.',
+      });
+    }
+
+    // 6. Validate correctIndex (0 to 3)
     const cIdx = parseInt(correctIndex, 10);
-    if (isNaN(cIdx) || cIdx < 0 || cIdx >= options.length) {
+    if (isNaN(cIdx) || cIdx < 0 || cIdx > 3) {
       return res.status(400).json({
         success: false,
-        message: `correctIndex must be between 0 and ${options.length - 1}`,
+        message: 'correctIndex must be an integer between 0 and 3',
       });
     }
 
-    // 3. Verify category exists
+    // 7. Verify category exists in DB
     let catDoc;
-    if (category.match(/^[0-9a-fA-F]{24}$/)) {
+    if (String(category).match(/^[0-9a-fA-F]{24}$/)) {
       catDoc = await Category.findById(category);
     } else {
-      catDoc = await Category.findOne({ slug: category.toLowerCase() });
+      catDoc = await Category.findOne({ slug: String(category).toLowerCase() });
     }
 
     if (!catDoc) {
       return res.status(404).json({ success: false, message: 'Referenced category does not exist' });
     }
 
-    // 4. Create and persist question
+    // 8. Create and persist question
     const question = await Question.create({
       text: text.trim(),
       options: options.map((opt) => opt.trim()),
@@ -126,6 +155,7 @@ const createQuestion = async (req, res, next) => {
       timeLimit: parseInt(timeLimit, 10) || 10,
       points: parseInt(points, 10) || 100,
       explanation: explanation?.trim() || '',
+      isActive: true,
     });
 
     const populated = await Question.findById(question._id).populate('category', 'name slug');
@@ -155,23 +185,71 @@ const updateQuestion = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Question not found' });
     }
 
-    if (text) question.text = text.trim();
-    if (options && Array.isArray(options)) {
+    // Check if deactivating question while a match is in progress
+    if (isActive === false && question.isActive === true) {
+      const activeMatches = Array.from(matchManager.matches.values()).filter(
+        (m) => m.state === 'in_progress' || m.state === 'starting'
+      );
+      const isMatchRunning = activeMatches.some(
+        (m) => m.category === question.category.toString() || m.questions?.some((q) => q.id === id)
+      );
+
+      if (isMatchRunning) {
+        const remainingActive = await Question.countDocuments({
+          category: question.category,
+          isActive: true,
+          _id: { $ne: question._id },
+        });
+
+        if (remainingActive < QUESTIONS_PER_MATCH) {
+          return res.status(400).json({
+            success: false,
+            message: `Cannot deactivate question: a battle in this category is currently in progress, and deactivating would drop questions below the required minimum (${QUESTIONS_PER_MATCH}).`,
+          });
+        }
+      }
+    }
+
+    if (text !== undefined) {
+      if (!text.trim()) return res.status(400).json({ success: false, message: 'Question prompt text cannot be empty' });
+      question.text = text.trim();
+    }
+
+    if (options !== undefined) {
+      if (!Array.isArray(options) || options.length !== 4) {
+        return res.status(400).json({ success: false, message: 'Questions must have exactly 4 answer options' });
+      }
+      if (options.some((opt) => typeof opt !== 'string' || !opt.trim())) {
+        return res.status(400).json({ success: false, message: 'All 4 answer options must be non-empty strings' });
+      }
+      const normalizedOptions = options.map((opt) => opt.trim().toLowerCase());
+      if (new Set(normalizedOptions).size !== 4) {
+        return res.status(400).json({ success: false, message: 'Options must be unique. Duplicate answers are not permitted.' });
+      }
       question.options = options.map((o) => o.trim());
     }
+
     if (correctIndex !== undefined) {
       const cIdx = parseInt(correctIndex, 10);
-      if (cIdx < 0 || cIdx >= (options ? options.length : question.options.length)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid correctIndex for provided options',
-        });
+      if (isNaN(cIdx) || cIdx < 0 || cIdx > 3) {
+        return res.status(400).json({ success: false, message: 'correctIndex must be between 0 and 3' });
       }
       question.correctIndex = cIdx;
     }
+
     if (category) {
-      question.category = category;
+      let catDoc;
+      if (String(category).match(/^[0-9a-fA-F]{24}$/)) {
+        catDoc = await Category.findById(category);
+      } else {
+        catDoc = await Category.findOne({ slug: String(category).toLowerCase() });
+      }
+      if (!catDoc) {
+        return res.status(404).json({ success: false, message: 'Referenced category does not exist' });
+      }
+      question.category = catDoc._id;
     }
+
     if (difficulty) question.difficulty = difficulty;
     if (timeLimit) question.timeLimit = parseInt(timeLimit, 10);
     if (points) question.points = parseInt(points, 10);
@@ -205,6 +283,29 @@ const deleteQuestion = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Question not found' });
     }
 
+    // Check if deleting would leave category below minimum while a match is in progress
+    const activeMatches = Array.from(matchManager.matches.values()).filter(
+      (m) => m.state === 'in_progress' || m.state === 'starting'
+    );
+    const isMatchRunning = activeMatches.some(
+      (m) => m.category === question.category.toString() || m.questions?.some((q) => q.id === id)
+    );
+
+    if (isMatchRunning) {
+      const remainingActive = await Question.countDocuments({
+        category: question.category,
+        isActive: true,
+        _id: { $ne: question._id },
+      });
+
+      if (remainingActive < QUESTIONS_PER_MATCH) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot delete question: an active match in this category is currently in progress, and deleting would drop questions below the required minimum (${QUESTIONS_PER_MATCH}).`,
+        });
+      }
+    }
+
     await Question.findByIdAndDelete(id);
 
     return res.status(200).json({
@@ -219,68 +320,39 @@ const deleteQuestion = async (req, res, next) => {
 
 /**
  * @desc    Get random questions by category for matches (Task 3, AC-01, AC-06)
- *          CRITICAL: Strips correctIndex so clients cannot cheat via inspection!
+ *          Strict rule: questions from requested category ONLY, minimum QUESTIONS_PER_MATCH required.
+ *          Never falls back to other categories or external sources.
  * @route   GET /api/questions/random
  * @access  Public / Players
  */
 const getRandomQuestions = async (req, res, next) => {
   try {
-    const count = Math.min(20, Math.max(1, parseInt(req.query.count, 10) || 3));
-    const matchQuery = { isActive: true };
-
-    if (req.query.category) {
-      if (req.query.category.match(/^[0-9a-fA-F]{24}$/)) {
-        matchQuery.category = req.query.category;
-      } else {
-        const cat = await Category.findOne({ slug: req.query.category.toLowerCase() });
-        if (cat) {
-          matchQuery.category = cat._id;
-        }
-      }
+    if (!req.query.category) {
+      return res.status(400).json({
+        success: false,
+        code: ERROR_CODES.CATEGORY_HAS_NO_QUESTIONS,
+        message: 'Category parameter is required to fetch match questions.',
+      });
     }
 
-    // Use MongoDB $sample to select random questions
-    const rawQuestions = await Question.aggregate([
-      { $match: matchQuery },
-      { $sample: { size: count } },
-      {
-        // Populate category details
-        $lookup: {
-          from: 'categories',
-          localField: 'category',
-          foreignField: '_id',
-          as: 'categoryDetails',
-        },
-      },
-      { $unwind: { path: '$categoryDetails', preserveNullAndEmptyArrays: true } },
-      // Project out secret answer fields (NFR-03 Security)
-      {
-        $project: {
-          _id: 1,
-          id: '$_id',
-          prompt: '$text',
-          options: 1,
-          difficulty: 1,
-          timeLimit: 1,
-          points: 100,
-          category: '$categoryDetails.slug',
-          categoryName: '$categoryDetails.name',
-        },
-      },
-    ]);
+    try {
+      const questions = await getPlayableQuestions(req.query.category);
+      const sanitized = questions.map((q, idx) => sanitizeQuestionForClient(q, idx, questions.length));
 
-    // Format with questionNumber and totalQuestions
-    const questions = rawQuestions.map((q, index) => ({
-      ...q,
-      questionNumber: index + 1,
-      totalQuestions: rawQuestions.length,
-    }));
-
-    return res.status(200).json({
-      success: true,
-      count: questions.length,
-      questions,
-    });
+      return res.status(200).json({
+        success: true,
+        count: sanitized.length,
+        questions: sanitized,
+      });
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        code: err.code || ERROR_CODES.CATEGORY_NOT_ENOUGH_QUESTIONS,
+        message: err.message,
+        available: err.available !== undefined ? err.available : 0,
+        required: err.required !== undefined ? err.required : QUESTIONS_PER_MATCH,
+      });
+    }
   } catch (error) {
     next(error);
   }

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { Swords, LogOut, Zap, Shield, Trophy, User as UserIcon, Medal, Award, Crown, Gem } from 'lucide-react';
+import { Swords, LogOut, Zap, Shield, Trophy, User as UserIcon, Medal, Award, Crown, Gem, AlertTriangle } from 'lucide-react';
 import { LiquidNavbar } from './ui/liquid-glass-navbar';
 import { getAvatarUrl } from '../utils/avatar';
 import { normalizeTier, getTierDetails } from '../constants/tiers';
@@ -10,15 +11,41 @@ const VIEW_MAP = ['arena', 'leaderboard', 'profile'];
 
 export const Navbar = ({ currentView, onNavigate }) => {
   const { user, logout, isAuthenticated } = useAuth();
-  const { connected } = useSocket();
+  const { socket, connected } = useSocket();
+  const location = useLocation();
+  const isMatchInProgress = location.pathname.startsWith('/match');
+  const [pendingNavTarget, setPendingNavTarget] = useState(null);
+
+  const handleAttemptNavigate = (target) => {
+    if (isMatchInProgress) {
+      setPendingNavTarget(target);
+    } else {
+      if (typeof target === 'function') {
+        target();
+      } else {
+        onNavigate(target);
+      }
+    }
+  };
+
+  const handleConfirmForfeitLeave = () => {
+    if (socket && isMatchInProgress) {
+      const matchId = location.pathname.split('/match/')[1];
+      socket.emit('leave_match', { matchId });
+    }
+    const target = pendingNavTarget;
+    setPendingNavTarget(null);
+    if (typeof target === 'function') {
+      target();
+    } else if (target) {
+      onNavigate(target);
+    }
+  };
 
   const handleBrandClick = () => {
     if (!isAuthenticated) return;
-    if (user?.role === 'admin') {
-      onNavigate('admin');
-    } else {
-      onNavigate('arena');
-    }
+    const target = user?.role === 'admin' ? 'admin' : 'arena';
+    handleAttemptNavigate(target);
   };
 
   const userInitial = (user?.displayName || user?.username || 'U').charAt(0).toUpperCase();
@@ -108,7 +135,7 @@ export const Navbar = ({ currentView, onNavigate }) => {
             <LiquidNavbar
               items={navItems}
               active={activeNavIndex >= 0 ? activeNavIndex : 0}
-              onChange={(index) => onNavigate(VIEW_MAP[index])}
+              onChange={(index) => handleAttemptNavigate(VIEW_MAP[index])}
               tone="dark"
               sound={true}
             />
@@ -175,35 +202,37 @@ export const Navbar = ({ currentView, onNavigate }) => {
               ) : (
                 /* PLAYER METRICS & CONTROLS */
                 <>
-                  {/* Tier & XP Chip */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      background: 'var(--bg-input)',
-                      border: '1px solid var(--border-color)',
-                      padding: '0.35rem 0.65rem',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                    }}
-                    title={`${userTier} Tier • ${user.xp || 0} Total XP`}
-                  >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: tierDetails.color }}>
-                      {renderTierIcon(tierDetails.icon, tierDetails.color)}
-                      <span style={{ fontWeight: 800 }}>{userTier}</span>
-                    </span>
-                    <span style={{ color: 'rgba(255, 255, 255, 0.2)' }}>|</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#fcd34d' }}>
-                      <Zap size={12} color="#f59e0b" />
-                      <span>{user.xp || 0} XP</span>
-                    </span>
-                  </div>
+                  {/* Tier & XP Chip (Hidden mid-duel to prevent confusion) */}
+                  {!isMatchInProgress && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border-color)',
+                        padding: '0.35rem 0.65rem',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                      }}
+                      title={`${userTier} Tier • ${user.xp || 0} Total XP`}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: tierDetails.color }}>
+                        {renderTierIcon(tierDetails.icon, tierDetails.color)}
+                        <span style={{ fontWeight: 800 }}>{userTier}</span>
+                      </span>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.2)' }}>|</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#fcd34d' }}>
+                        <Zap size={12} color="#f59e0b" />
+                        <span>{user.xp || 0} XP</span>
+                      </span>
+                    </div>
+                  )}
 
                   {/* Player Avatar Chip */}
                   <div
-                    onClick={() => onNavigate('profile')}
+                    onClick={() => handleAttemptNavigate('profile')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -259,7 +288,7 @@ export const Navbar = ({ currentView, onNavigate }) => {
               {/* Logout Button */}
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => handleAttemptNavigate(logout)}
                 className="btn btn-secondary"
                 style={{ padding: '0.35rem 0.65rem', minHeight: 34, fontSize: '0.85rem' }}
                 aria-label="Log out of SkillDuels"
@@ -272,6 +301,85 @@ export const Navbar = ({ currentView, onNavigate }) => {
           )}
         </div>
       </div>
+
+      {/* Forfeit Confirmation Modal mid-duel */}
+      {pendingNavTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(5, 10, 18, 0.8)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+          }}
+          onClick={() => setPendingNavTarget(null)}
+        >
+          <div
+            style={{
+              background: '#131b2e',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: '16px',
+              padding: '1.75rem',
+              maxWidth: 440,
+              width: '100%',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.2)',
+              color: '#ffffff',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 10,
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: '#f87171',
+                }}
+              >
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>Leave Duel?</h3>
+                <p style={{ fontSize: '0.825rem', color: '#94a3b8', margin: 0 }}>
+                  Active match in progress
+                </p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.9rem', color: '#cbd5e1', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+              Leaving this page will immediately <strong>forfeit</strong> the match and award the victory to your opponent. Are you sure you want to exit?
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setPendingNavTarget(null)}
+                className="btn btn-secondary"
+                style={{ padding: '0.55rem 1.15rem' }}
+              >
+                Stay in Duel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmForfeitLeave}
+                className="btn btn-danger"
+                style={{ background: '#ef4444', color: '#ffffff', border: 'none', padding: '0.55rem 1.15rem', borderRadius: 8, fontWeight: 700 }}
+              >
+                Forfeit & Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

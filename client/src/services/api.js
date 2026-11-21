@@ -101,7 +101,11 @@ export const leaderboardAPI = {
     apiRequest(`/leaderboard/global?page=${page}&limit=${limit}`),
   getWeekly: (page = 1, limit = 20) =>
     apiRequest(`/leaderboard/weekly?page=${page}&limit=${limit}`),
-  getUserProgression: (userId) => apiRequest(`/leaderboard/user/${userId}`),
+  getUserProgression: (userId, page = 1, limit = 10, category = '') => {
+    let url = `/leaderboard/user/${userId}?page=${page}&limit=${limit}`;
+    if (category) url += `&category=${encodeURIComponent(category)}`;
+    return apiRequest(url);
+  },
   getPublic: (type = 'global', limit = 10) =>
     apiRequest(`/leaderboard/public?type=${type}&limit=${limit}`),
 };

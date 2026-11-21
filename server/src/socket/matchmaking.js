@@ -52,6 +52,20 @@ class MatchmakingQueue {
   }
 
   /**
+   * Check if a player is currently in any queue
+   * @param {string} socketIdOrUserId
+   * @returns {boolean}
+   */
+  isQueued(socketIdOrUserId) {
+    for (const queue of this.queues.values()) {
+      if (queue.some((p) => p.socketId === socketIdOrUserId || p.userId === socketIdOrUserId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Remove a player from all queues (e.g. On disconnect or cancel)
    * @param {string} socketIdOrUserId
    */

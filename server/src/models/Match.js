@@ -92,6 +92,10 @@ const MatchSchema = new mongoose.Schema(
       type: Number,
       default: 3,
     },
+    questionIds: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question' }],
+      default: [],
+    },
   },
   {
     timestamps: true,

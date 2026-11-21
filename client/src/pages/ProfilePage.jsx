@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { leaderboardAPI, profileAPI } from '../services/api';
 import { getAvatarUrl } from '../utils/avatar';
-import { normalizeTier, TIERS } from '../constants/tiers';
+import { normalizeTier, TIERS, getNextTierProgress } from '../constants/tiers';
+import { formatCategoryName, CATEGORY_FILTER_OPTIONS } from '../constants/categories';
+import { AchievementUnlockedModal } from '../components/ui/achievement-unlocked-modal';
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -20,7 +21,6 @@ import {
   User,
   Edit3,
   Camera,
-  Upload,
   Zap,
   Flame,
   Award,
@@ -32,22 +32,30 @@ import {
   Sparkles,
   ShieldCheck,
   Gem,
-  Tag,
+  Target,
+  Star,
   X,
   Check,
   AlertCircle,
   Clock,
   ChevronLeft,
+  Filter,
+  RotateCcw,
+  CheckCircle2,
+  Lock,
+  ArrowRight,
+  ExternalLink,
 } from 'lucide-react';
 
+// Render unique Lucide icons for each badge
 const renderBadgeIcon = (iconName, isUnlocked) => {
   const color = isUnlocked ? '#ffffff' : '#94a3b8';
   const size = 22;
   switch (iconName) {
     case 'swords':
       return <Swords size={size} color={color} />;
-    case 'trophy':
-      return <Trophy size={size} color={color} />;
+    case 'target':
+      return <Target size={size} color={color} />;
     case 'sparkles':
       return <Sparkles size={size} color={color} />;
     case 'zap':
@@ -59,15 +67,96 @@ const renderBadgeIcon = (iconName, isUnlocked) => {
       return <ShieldCheck size={size} color={color} />;
     case 'shield':
       return <Shield size={size} color={color} />;
+    case 'trophy':
+      return <Trophy size={size} color={color} />;
     case 'medal':
       return <Medal size={size} color={color} />;
     case 'diamond':
       return <Gem size={size} color={color} />;
+    case 'star':
+      return <Star size={size} color={color} />;
     case 'crown':
       return <Crown size={size} color={color} />;
+    case 'award':
+      return <Award size={size} color={color} />;
     default:
       return <Award size={size} color={color} />;
   }
+};
+
+// Skill color mapping based on technology type
+const getSkillBadgeStyle = (skill) => {
+  const s = (skill || '').toLowerCase().trim();
+
+  // Languages: amber / orange
+  const languages = ['java', 'javascript', 'typescript', 'python', 'c++', 'c', 'c#', 'rust', 'go', 'golang', 'ruby', 'php', 'swift', 'kotlin', 'html', 'html5', 'css', 'css3', 'sass', 'dart'];
+  if (languages.includes(s) || s.endsWith('script') || s.startsWith('python') || s.startsWith('java')) {
+    return {
+      bg: 'rgba(245, 158, 11, 0.12)',
+      border: 'rgba(245, 158, 11, 0.35)',
+      color: '#fcd34d',
+      label: 'Language',
+    };
+  }
+
+  // Databases & Cloud: emerald / green
+  const databases = ['mongodb', 'sql', 'mysql', 'postgresql', 'postgres', 'redis', 'firebase', 'sqlite', 'oracle', 'supabase', 'dynamodb', 'dbms'];
+  if (databases.includes(s) || s.includes('sql') || s.includes('mongo') || s.includes('db')) {
+    return {
+      bg: 'rgba(16, 185, 129, 0.12)',
+      border: 'rgba(16, 185, 129, 0.35)',
+      color: '#6ee7b7',
+      label: 'Database',
+    };
+  }
+
+  // Frameworks: cyan / sky blue
+  const frameworks = ['react', 'next.js', 'nextjs', 'vue', 'angular', 'node.js', 'nodejs', 'express', 'django', 'flask', 'spring', 'springboot', 'spring boot', 'fastapi', 'tailwind', 'bootstrap'];
+  if (frameworks.includes(s) || s.includes('spring') || s.includes('react') || s.includes('node') || s.includes('express')) {
+    return {
+      bg: 'rgba(56, 189, 248, 0.12)',
+      border: 'rgba(56, 189, 248, 0.35)',
+      color: '#38bdf8',
+      label: 'Framework',
+    };
+  }
+
+  // Tools & CS: violet / purple
+  return {
+    bg: 'rgba(168, 85, 247, 0.12)',
+    border: 'rgba(168, 85, 247, 0.35)',
+    color: '#d8b4fe',
+    label: 'Tool / CS',
+  };
+};
+
+// Date formatters: Indian style "21 Nov 2026" with relative time
+const formatIndianDate = (dateString) => {
+  if (!dateString) return '';
+  const d = new Date(dateString);
+  return d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const getRelativeTime = (dateString) => {
+  if (!dateString) return '';
+  const d = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSec < 60) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return `${diffDays} days ago`;
 };
 
 export const ProfilePage = ({ onBackToArena }) => {
@@ -79,6 +168,23 @@ export const ProfilePage = ({ onBackToArena }) => {
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [toastMessage, setToastMessage] = useState('');
+
+  // Achievements Filter Tab: 'all' | 'unlocked' | 'locked'
+  const [badgeFilter, setBadgeFilter] = useState('all');
+  const [celebrateBadge, setCelebrateBadge] = useState(null);
+
+  // Match History Controls
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [matchPage, setMatchPage] = useState(1);
+  const [matchesList, setMatchesList] = useState([]);
+  const [paginationInfo, setPaginationInfo] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [loadingMoreMatches, setLoadingMoreMatches] = useState(false);
+
+  // Match Breakdown Dialog
+  const [selectedMatchForBreakdown, setSelectedMatchForBreakdown] = useState(null);
+
+  // Opponent Preview Dialog
+  const [previewOpponent, setPreviewOpponent] = useState(null);
 
   // Editable Form State
   const [displayName, setDisplayName] = useState('');
@@ -97,24 +203,37 @@ export const ProfilePage = ({ onBackToArena }) => {
   const fileInputRef = useRef(null);
 
   // Load User Progression & Stats
-  const loadProfile = useCallback(async () => {
-    if (!user?._id) return;
-    setLoading(true);
-    try {
-      const res = await leaderboardAPI.getUserProgression(user._id);
-      if (res.success && res.profile) {
-        setProfileData(res.profile);
+  const loadProfile = useCallback(
+    async (page = 1, category = 'all', append = false) => {
+      if (!user?._id) return;
+      if (page === 1) setLoading(true);
+      else setLoadingMoreMatches(true);
+
+      try {
+        const res = await leaderboardAPI.getUserProgression(user._id, page, 10, category === 'all' ? '' : category);
+        if (res.success && res.profile) {
+          setProfileData(res.profile);
+          setPaginationInfo(res.profile.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 });
+          if (append) {
+            setMatchesList((prev) => [...prev, ...(res.profile.recentMatches || [])]);
+          } else {
+            setMatchesList(res.profile.recentMatches || []);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load detailed progression:', err.message);
+      } finally {
+        setLoading(false);
+        setLoadingMoreMatches(false);
       }
-    } catch (err) {
-      console.warn('Could not load detailed progression:', err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?._id]);
+    },
+    [user?._id]
+  );
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    setMatchPage(1);
+    loadProfile(1, selectedCategory, false);
+  }, [loadProfile, selectedCategory]);
 
   // Load skills catalog
   useEffect(() => {
@@ -128,6 +247,14 @@ export const ProfilePage = ({ onBackToArena }) => {
       })
       .catch((err) => console.warn('Could not load skills catalog:', err.message));
   }, []);
+
+  // Handle Load More Matches
+  const handleLoadMoreMatches = () => {
+    if (matchPage >= paginationInfo.totalPages) return;
+    const nextPage = matchPage + 1;
+    setMatchPage(nextPage);
+    loadProfile(nextPage, selectedCategory, true);
+  };
 
   // Sync edit form with current user data when starting edit
   const startEditing = () => {
@@ -232,7 +359,7 @@ export const ProfilePage = ({ onBackToArena }) => {
       setIsEditing(false);
       setToastMessage('Profile changes saved successfully!');
       setTimeout(() => setToastMessage(''), 4000);
-      loadProfile();
+      loadProfile(1, selectedCategory, false);
     } catch (err) {
       setEditError(err.message || 'Failed to update profile.');
     } finally {
@@ -240,17 +367,20 @@ export const ProfilePage = ({ onBackToArena }) => {
     }
   };
 
+  const currentXP = profileData?.xp !== undefined ? profileData.xp : user?.xp || 0;
+  const currentTier = normalizeTier(profileData?.rank || user?.rank, currentXP);
+  const tierProgress = getNextTierProgress(currentXP);
+
   const p = profileData
     ? {
         ...profileData,
-        rank: normalizeTier(profileData.rank, profileData.xp || user?.xp || 0),
+        rank: currentTier,
       }
     : {
-        xp: user?.xp || 0,
-        rank: normalizeTier(user?.rank, user?.xp || 0),
+        xp: currentXP,
+        rank: currentTier,
         globalPosition: 1,
-        xpToNextRank: 100,
-        rankProgressPercent: 25,
+        stats: { matchesPlayed: 0, matchesWon: 0, winRate: 0, bestCategory: 'DSA' },
         streak: { current: 1, highest: 1 },
         badges: [],
         recentMatches: [],
@@ -258,8 +388,33 @@ export const ProfilePage = ({ onBackToArena }) => {
 
   const userInitial = (user?.displayName || user?.username || 'U').charAt(0).toUpperCase();
 
+  // Filtered badges
+  const allBadges = p.badges || [];
+  const unlockedBadges = allBadges.filter((b) => b.isUnlocked);
+  const lockedBadges = allBadges.filter((b) => !b.isUnlocked);
+
+  const displayedBadges =
+    badgeFilter === 'unlocked'
+      ? unlockedBadges
+      : badgeFilter === 'locked'
+      ? lockedBadges
+      : allBadges;
+
+  // Calculate Win Rate and Best Category from matches/stats
+  const totalMatchesCount = p.stats?.matchesPlayed || matchesList.length || 0;
+  const matchesWonCount = p.stats?.matchesWon || matchesList.filter((m) => m.isWinner).length || 0;
+  const computedWinRate =
+    totalMatchesCount > 0 ? Math.round((matchesWonCount / totalMatchesCount) * 100) : p.stats?.winRate || 0;
+  const bestCategoryDisplay = formatCategoryName(p.stats?.bestCategory || 'DSA');
+
+  // Rematch handler
+  const handleRematch = (cat) => {
+    const targetCat = cat || 'dsa';
+    window.location.href = `/arena?category=${encodeURIComponent(targetCat)}`;
+  };
+
   return (
-    <main className="container" style={{ maxWidth: 1000, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
+    <main className="container" style={{ maxWidth: 1060, paddingTop: '5.25rem', paddingBottom: '4rem' }}>
       {/* Toast Notification */}
       {toastMessage && (
         <div
@@ -292,7 +447,7 @@ export const ProfilePage = ({ onBackToArena }) => {
           type="button"
           onClick={onBackToArena}
           className="btn btn-secondary"
-          style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem', minHeight: 36 }}
+          style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem', minHeight: 36 }}
         >
           <ChevronLeft size={16} />
           <span>Back to Arena</span>
@@ -303,7 +458,7 @@ export const ProfilePage = ({ onBackToArena }) => {
             type="button"
             onClick={startEditing}
             className="btn btn-primary"
-            style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', minHeight: 36 }}
+            style={{ padding: '0.45rem 1.1rem', fontSize: '0.85rem', minHeight: 36 }}
           >
             <Edit3 size={15} />
             <span>Edit Profile</span>
@@ -321,23 +476,23 @@ export const ProfilePage = ({ onBackToArena }) => {
             </DialogTitle>
           </DialogHeader>
           <DialogDescription className="sr-only">
-            Make changes to your profile here. Update your banner, avatar, display name, bio, and skills.
+            Make changes to your profile here. Update your avatar, display name, bio, and skills.
           </DialogDescription>
 
           <div className="overflow-y-auto max-h-[75vh]">
             {/* Profile Cover Banner */}
-            <div className="h-32 relative bg-slate-800 overflow-hidden">
+            <div className="h-28 relative bg-slate-800 overflow-hidden">
               <img
                 src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80"
                 alt="Profile banner"
-                className="w-full h-full object-cover opacity-85"
+                className="w-full h-full object-cover opacity-80"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#182234] to-transparent" />
             </div>
 
             {/* Avatar Row */}
             <div className="-mt-12 px-6 flex items-end justify-between">
-              <div className="relative">
+              <div className="relative group">
                 {avatarPreview && !avatarImgError ? (
                   <img
                     key={avatarPreview}
@@ -429,21 +584,29 @@ export const ProfilePage = ({ onBackToArena }) => {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 min-h-[32px]">
-                  {skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/40 text-indigo-200 text-xs font-medium"
-                    >
-                      <span>{skill}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSkill(skill)}
-                        className="text-indigo-400 hover:text-white"
+                  {skills.map((skill) => {
+                    const badgeStyle = getSkillBadgeStyle(skill);
+                    return (
+                      <span
+                        key={skill}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                        style={{
+                          background: badgeStyle.bg,
+                          border: `1px solid ${badgeStyle.border}`,
+                          color: badgeStyle.color,
+                        }}
                       >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  ))}
+                        <span>{skill}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill)}
+                          className="opacity-70 hover:opacity-100 hover:text-white"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
 
                 <div className="flex gap-2">
@@ -539,7 +702,8 @@ export const ProfilePage = ({ onBackToArena }) => {
         >
           {/* Avatar & Player Info */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.25rem' }}>
-            <div style={{ position: 'relative', display: 'inline-block' }}>
+            {/* Avatar with hover-only camera icon button to avoid looking like notification dot */}
+            <div className="relative group" style={{ display: 'inline-block' }}>
               {user?.avatarUrl && !viewImgError ? (
                 <img
                   key={user.avatarUrl}
@@ -547,8 +711,8 @@ export const ProfilePage = ({ onBackToArena }) => {
                   alt={user.displayName || user.username}
                   onError={() => setViewImgError(true)}
                   style={{
-                    width: 84,
-                    height: 84,
+                    width: 86,
+                    height: 86,
                     borderRadius: 'var(--radius-lg)',
                     objectFit: 'cover',
                     border: '2px solid #818cf8',
@@ -558,8 +722,8 @@ export const ProfilePage = ({ onBackToArena }) => {
               ) : (
                 <div
                   style={{
-                    width: 84,
-                    height: 84,
+                    width: 86,
+                    height: 86,
                     borderRadius: 'var(--radius-lg)',
                     background: 'var(--accent-gradient)',
                     display: 'flex',
@@ -574,11 +738,13 @@ export const ProfilePage = ({ onBackToArena }) => {
                   {userInitial}
                 </div>
               )}
+              {/* Camera icon button: visible on hover only */}
               <button
                 type="button"
                 onClick={startEditing}
                 title="Change Avatar"
                 aria-label="Change Avatar"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
                 style={{
                   position: 'absolute',
                   bottom: -6,
@@ -593,7 +759,7 @@ export const ProfilePage = ({ onBackToArena }) => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
                 }}
               >
                 <Camera size={13} />
@@ -608,7 +774,15 @@ export const ProfilePage = ({ onBackToArena }) => {
                 <span className="badge badge-primary">{p.rank}</span>
               </div>
               <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                @{user?.username} &bull; Standing: <strong style={{ color: '#818cf8' }}>#{p.globalPosition || 1}</strong>
+                @{user?.username} &bull; Standing:{' '}
+                <a
+                  href="/leaderboard"
+                  className="font-bold hover:underline"
+                  style={{ color: '#818cf8' }}
+                  title="View full leaderboard"
+                >
+                  #{p.globalPosition || 1}
+                </a>
               </div>
 
               {/* Bio */}
@@ -616,75 +790,79 @@ export const ProfilePage = ({ onBackToArena }) => {
                 {user?.bio || 'No bio written yet. Click "Edit Profile" to share your technical background.'}
               </p>
 
-              {/* Skills Chips */}
+              {/* Skill Chips colored by category */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                 {(user?.skills || []).length === 0 ? (
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
                     No skills tagged yet
                   </span>
                 ) : (
-                  user.skills.map((skill) => (
-                    <span
-                      key={skill}
-                      style={{
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'rgba(99, 102, 241, 0.12)',
-                        border: '1px solid rgba(99, 102, 241, 0.3)',
-                        color: '#c7d2fe',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {skill}
-                    </span>
-                  ))
+                  user.skills.map((skill) => {
+                    const badgeStyle = getSkillBadgeStyle(skill);
+                    return (
+                      <span
+                        key={skill}
+                        title={badgeStyle.label}
+                        style={{
+                          padding: '0.22rem 0.65rem',
+                          borderRadius: 'var(--radius-sm)',
+                          background: badgeStyle.bg,
+                          border: `1px solid ${badgeStyle.border}`,
+                          color: badgeStyle.color,
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {skill}
+                      </span>
+                    );
+                  })
                 )}
               </div>
             </div>
           </div>
 
-          {/* Quick Metrics (Streak & XP) */}
+          {/* Quick Metrics: Streak in Orange & Lifetime XP */}
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            {/* Streak */}
+            {/* Active Streak in warm orange */}
             <div
               style={{
-                background: (p.streak?.current || 0) > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(100, 116, 139, 0.12)',
-                border: `1px solid ${(p.streak?.current || 0) > 0 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(100, 116, 139, 0.3)'}`,
-                padding: '0.6rem 1rem',
+                background: (p.streak?.current || 0) > 0 ? 'rgba(249, 115, 22, 0.15)' : 'rgba(100, 116, 139, 0.12)',
+                border: `1px solid ${(p.streak?.current || 0) > 0 ? 'rgba(249, 115, 22, 0.45)' : 'rgba(100, 116, 139, 0.3)'}`,
+                padding: '0.65rem 1.1rem',
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.6rem',
+                gap: '0.65rem',
               }}
             >
-              <Flame size={24} color={(p.streak?.current || 0) > 0 ? '#ef4444' : '#94a3b8'} />
+              <Flame size={24} color={(p.streak?.current || 0) > 0 ? '#f97316' : '#94a3b8'} />
               <div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (p.streak?.current || 0) > 0 ? '#fca5a5' : '#cbd5e1' }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (p.streak?.current || 0) > 0 ? '#fdba74' : '#cbd5e1' }}>
                   {(p.streak?.current || 0) > 0 ? `${p.streak.current} Day${p.streak.current === 1 ? '' : 's'}` : '0 Days'}
                 </div>
-                <div style={{ fontSize: '0.7rem', color: (p.streak?.current || 0) > 0 ? 'var(--text-muted)' : '#f59e0b' }}>
-                  {(p.streak?.current || 0) > 0 ? 'ACTIVE STREAK' : 'Play today to start streak'}
+                <div style={{ fontSize: '0.7rem', color: (p.streak?.current || 0) > 0 ? '#fed7aa' : '#f59e0b', fontWeight: 600 }}>
+                  {(p.streak?.current || 0) > 0 ? 'Play today to keep it' : 'Play today to start streak'}
                 </div>
               </div>
             </div>
 
-            {/* Total XP */}
+            {/* Total Lifetime XP */}
             <div
               style={{
                 background: 'rgba(245, 158, 11, 0.12)',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
-                padding: '0.6rem 1rem',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                padding: '0.65rem 1.1rem',
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.6rem',
+                gap: '0.65rem',
               }}
             >
               <Zap size={24} color="#f59e0b" />
               <div>
                 <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fcd34d' }}>
-                  {(p.xp || 0).toLocaleString()} XP
+                  {currentXP.toLocaleString()} XP
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>LIFETIME XP</div>
               </div>
@@ -692,22 +870,152 @@ export const ProfilePage = ({ onBackToArena }) => {
           </div>
         </div>
 
-        {/* Rank Progression Bar */}
+        {/* Stats Row: Win Rate, Matches Played, Best Category */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '0.75rem',
+            padding: '0.85rem 1.25rem',
+            marginBottom: '1.5rem',
+            background: 'rgba(15, 23, 42, 0.65)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Win Rate
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>
+              {computedWinRate}%
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Matches Played
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#93c5fd' }}>
+              {totalMatchesCount}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Best Category
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c084fc' }}>
+              {bestCategoryDisplay}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Active Tier
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fcd34d' }}>
+              {currentTier}
+            </div>
+          </div>
+        </div>
+
+        {/* Tier Roadmap: Horizontal Stepper showing all 7 tiers */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#cbd5e1' }}>
+              Tier Progression Roadmap
+            </span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Climb to Conqueror (3,500+ XP)
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: '0.5rem',
+              overflowX: 'auto',
+              paddingBottom: '0.5rem',
+            }}
+          >
+            {TIERS.map((tier, idx) => {
+              const isCurrent = tier.name === currentTier;
+              const currentTierIdx = TIERS.findIndex((t) => t.name === currentTier);
+              const isPassed = idx < currentTierIdx;
+              const isUpcoming = idx > currentTierIdx;
+
+              return (
+                <div
+                  key={tier.name}
+                  style={{
+                    background: isCurrent
+                      ? 'rgba(245, 158, 11, 0.15)'
+                      : isPassed
+                      ? 'rgba(16, 185, 129, 0.08)'
+                      : 'rgba(30, 41, 59, 0.5)',
+                    border: isCurrent
+                      ? '2px solid #f59e0b'
+                      : isPassed
+                      ? '1px solid rgba(16, 185, 129, 0.4)'
+                      : '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.6rem 0.5rem',
+                    textAlign: 'center',
+                    position: 'relative',
+                    boxShadow: isCurrent ? '0 0 15px rgba(245, 158, 11, 0.25)' : 'none',
+                    minWidth: 105,
+                  }}
+                >
+                  {isCurrent && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: -8,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: '#f59e0b',
+                        color: '#0f172a',
+                        fontSize: '0.55rem',
+                        fontWeight: 900,
+                        padding: '1px 6px',
+                        borderRadius: '9999px',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      CURRENT
+                    </span>
+                  )}
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: isCurrent ? '#fcd34d' : isPassed ? '#6ee7b7' : '#94a3b8' }}>
+                    {tier.name}
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: isPassed ? '#10b981' : 'var(--text-dim)', marginTop: '0.15rem' }}>
+                    {isPassed ? '✓ Achieved' : `${tier.minXP} XP`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Progress Bar Math: Gold is 300-599, show "170 / 300 XP in Gold" */}
         <div style={{ background: 'var(--bg-input)', padding: '1.1rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
             <span>
-              Current Tier: <strong style={{ color: '#818cf8' }}>{p.rank}</strong>
+              Current Tier: <strong style={{ color: '#818cf8' }}>{currentTier}</strong>
             </span>
             <span>
-              {p.nextTier ? (
+              {tierProgress.nextTier ? (
                 <>
-                  Next: <strong style={{ color: '#fcd34d' }}>{p.nextTier.name}</strong> ({p.xpToNextRank} XP needed)
+                  Next: <strong style={{ color: '#fcd34d' }}>{tierProgress.nextTier}</strong> ({tierProgress.xpNeeded} XP needed)
                 </>
               ) : (
-                <span style={{ color: '#fcd34d' }}>Max Tier Achieved!</span>
+                <span style={{ color: '#fcd34d', fontWeight: 700 }}>Conqueror Supreme Achieved!</span>
               )}
             </span>
           </div>
+
           <div
             style={{
               width: '100%',
@@ -720,7 +1028,7 @@ export const ProfilePage = ({ onBackToArena }) => {
           >
             <div
               style={{
-                width: `${p.rankProgressPercent || 0}%`,
+                width: `${tierProgress.progressPercent || 0}%`,
                 height: '100%',
                 background: 'var(--accent-gradient)',
                 borderRadius: 'var(--radius-full)',
@@ -728,120 +1036,304 @@ export const ProfilePage = ({ onBackToArena }) => {
               }}
             />
           </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            <span>{p.xp || 0} XP earned</span>
-            <span style={{ fontWeight: 700, color: '#c7d2fe' }}>{p.rankProgressPercent || 0}% toward next rank</span>
+            <span>
+              {tierProgress.nextTier ? (
+                <>
+                  <strong style={{ color: '#e2e8f0' }}>{tierProgress.xpInCurrentTier} / {tierProgress.tierSpan} XP</strong> in {currentTier}{' '}
+                  <span style={{ color: 'var(--text-dim)' }}>({currentXP} / {tierProgress.nextTierMinXP} XP)</span>
+                </>
+              ) : (
+                <strong style={{ color: '#e2e8f0' }}>{currentXP} XP Lifetime</strong>
+              )}
+            </span>
+            <span style={{ fontWeight: 700, color: '#c7d2fe' }}>
+              {tierProgress.progressPercent || 0}% toward {tierProgress.nextTier || 'Max Tier'}
+            </span>
           </div>
         </div>
       </section>
 
-      {/* SECTION 1: BADGES & ACHIEVEMENTS */}
-      <section style={{ marginBottom: '2.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Award size={20} color="#fcd34d" />
-          <span>Achievements & Badges</span>
-        </h2>
+      {/* SECTION 1: ACHIEVEMENTS & BADGES */}
+      <section style={{ marginBottom: '3rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Award size={22} color="#fcd34d" />
+            <span>Achievements ({unlockedBadges.length} / {allBadges.length})</span>
+          </h2>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '1rem',
-          }}
-        >
-          {(p.badges || []).map((badge) => (
-            <div
-              key={badge.badgeId}
-              className="card"
+          {/* Filter Tabs: All, Unlocked, Locked */}
+          <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.7)', padding: '0.2rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <button
+              type="button"
+              onClick={() => setBadgeFilter('all')}
               style={{
-                background: badge.isUnlocked ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-input)',
-                border: `1px solid ${badge.isUnlocked ? 'var(--border-focus)' : 'var(--border-color)'}`,
-                opacity: badge.isUnlocked ? 1 : 0.6,
-                padding: '1rem',
+                padding: '0.35rem 0.85rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                background: badgeFilter === 'all' ? '#6366f1' : 'transparent',
+                color: badgeFilter === 'all' ? '#ffffff' : '#94a3b8',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 'var(--radius-md)',
-                    background: badge.isUnlocked ? 'var(--accent-gradient)' : '#334155',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  {renderBadgeIcon(badge.icon, badge.isUnlocked)}
+              All ({allBadges.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setBadgeFilter('unlocked')}
+              style={{
+                padding: '0.35rem 0.85rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                background: badgeFilter === 'unlocked' ? '#10b981' : 'transparent',
+                color: badgeFilter === 'unlocked' ? '#ffffff' : '#94a3b8',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              Unlocked ({unlockedBadges.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setBadgeFilter('locked')}
+              style={{
+                padding: '0.35rem 0.85rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                background: badgeFilter === 'locked' ? '#f59e0b' : 'transparent',
+                color: badgeFilter === 'locked' ? '#ffffff' : '#94a3b8',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              Locked ({lockedBadges.length})
+            </button>
+          </div>
+        </div>
+
+        {/* 4-column responsive grid on wide screens */}
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          {displayedBadges.map((badge) => (
+            <div
+              key={badge.badgeId}
+              onClick={() => {
+                if (badge.isUnlocked) {
+                  setCelebrateBadge(badge);
+                }
+              }}
+              title={badge.isUnlocked ? 'Click to preview celebration animation' : ''}
+              className={`card ${
+                badge.isUnlocked
+                  ? 'achievement-card-shine cursor-pointer hover:scale-[1.02] hover:border-amber-400/60 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                  : ''
+              }`}
+              style={{
+                background: badge.isUnlocked ? 'rgba(99, 102, 241, 0.08)' : 'var(--bg-input)',
+                border: `1px solid ${badge.isUnlocked ? 'rgba(99, 102, 241, 0.4)' : 'rgba(255, 255, 255, 0.07)'}`,
+                opacity: badge.isUnlocked ? 1 : 0.75,
+                padding: '1.1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 'var(--radius-md)',
+                      background: badge.isUnlocked ? 'var(--accent-gradient)' : '#334155',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: badge.isUnlocked ? '0 0 12px rgba(99, 102, 241, 0.4)' : 'none',
+                    }}
+                  >
+                    {renderBadgeIcon(badge.icon, badge.isUnlocked)}
+                  </div>
+
+                  {badge.isUnlocked ? (
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: '0.62rem',
+                        background: 'rgba(16, 185, 129, 0.2)',
+                        color: '#6ee7b7',
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        fontWeight: 700,
+                      }}
+                    >
+                      UNLOCKED
+                    </span>
+                  ) : (
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: '0.62rem',
+                        background: 'rgba(100, 116, 139, 0.2)',
+                        color: '#94a3b8',
+                        border: '1px solid rgba(100, 116, 139, 0.4)',
+                        fontWeight: 700,
+                      }}
+                    >
+                      LOCKED
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>{badge.name}</h3>
-                    {badge.isUnlocked ? (
-                      <span className="badge badge-success" style={{ fontSize: '0.6rem', background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', border: '1px solid #10b981' }}>
-                        UNLOCKED
-                      </span>
-                    ) : (
-                      <span className="badge badge-warning" style={{ fontSize: '0.6rem', background: 'rgba(100, 116, 139, 0.2)', color: '#94a3b8', border: '1px solid #64748b' }}>
-                        LOCKED
-                      </span>
+
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.35rem', color: '#ffffff' }}>
+                  {badge.name}
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4, margin: '0 0 0.6rem' }}>
+                  {badge.description}
+                </p>
+              </div>
+
+              <div>
+                {!badge.isUnlocked && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#f59e0b', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      <span>Req: {badge.requirement}</span>
+                      {badge.progressPercent > 0 && <span>{badge.progressPercent}%</span>}
+                    </div>
+                    {badge.progressPercent > 0 && (
+                      <div style={{ width: '100%', height: 4, background: '#334155', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{ width: `${badge.progressPercent}%`, height: '100%', background: '#f59e0b' }} />
+                      </div>
                     )}
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4, margin: 0 }}>
-                    {badge.description}
-                  </p>
-                  {!badge.isUnlocked && (
-                    <div style={{ fontSize: '0.72rem', color: '#f59e0b', marginTop: '0.3rem', fontWeight: 600 }}>
-                      Req: {badge.requirement || 'Play matches and keep streaks to unlock'}
-                    </div>
-                  )}
-                  {badge.isUnlocked && badge.unlockedAt && (
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.35rem' }}>
-                      Unlocked: {new Date(badge.unlockedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
-                  )}
-                </div>
+                )}
+
+                {badge.isUnlocked && (
+                  <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {badge.unlockedAt ? (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <CheckCircle2 size={12} color="#10b981" />
+                        <span>{formatIndianDate(badge.unlockedAt)}</span>
+                      </span>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1">
+                      <Sparkles size={11} />
+                      <span>View Animation</span>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* SECTION 2: MATCH HISTORY */}
+      {/* SECTION 2: MATCH HISTORY TABLE */}
       <section>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Swords size={20} color="#818cf8" />
-          <span>Recent Match History</span>
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Swords size={22} color="#818cf8" />
+            <span>Recent Match History</span>
+          </h2>
 
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-                  <th style={{ padding: '0.85rem 1rem' }}>Outcome</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Category</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Opponent</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Score</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>XP Gained</th>
-                  <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(p.recentMatches || []).length === 0 ? (
-                  <tr>
-                    <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                      No matches played yet. Enter the Arena to compete!
-                    </td>
+          {/* Category Filter Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={16} color="var(--text-muted)" />
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+            >
+              {CATEGORY_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Empty State when no matches */}
+        {matchesList.length === 0 ? (
+          <div
+            className="card"
+            style={{
+              padding: '3rem 2rem',
+              textAlign: 'center',
+              background: 'rgba(30, 41, 59, 0.4)',
+              border: '1px dashed rgba(255, 255, 255, 0.15)',
+            }}
+          >
+            <Swords size={44} color="#818cf8" style={{ margin: '0 auto 1rem', opacity: 0.8 }} />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 0.5rem', color: '#ffffff' }}>
+              No Matches Found
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', maxWidth: 450, margin: '0 auto 1.5rem' }}>
+              Step into the arena to test your skills in live 1v1 quiz battles, gain XP, and climb the tiers!
+            </p>
+            <button type="button" onClick={onBackToArena} className="btn btn-primary" style={{ padding: '0.55rem 1.4rem' }}>
+              <Swords size={16} />
+              <span>Find Opponent</span>
+            </button>
+          </div>
+        ) : (
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Desktop / Tablet Table View (>= 640px) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '0.85rem 1rem' }}>Outcome</th>
+                    <th style={{ padding: '0.85rem 1rem' }}>Category</th>
+                    <th style={{ padding: '0.85rem 1rem' }}>Opponent</th>
+                    <th style={{ padding: '0.85rem 1rem' }}>Score</th>
+                    <th style={{ padding: '0.85rem 1rem' }}>XP Gained</th>
+                    <th style={{ padding: '0.85rem 1rem' }}>Date</th>
+                    <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>Actions</th>
                   </tr>
-                ) : (
-                  p.recentMatches.map((m, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                </thead>
+                <tbody>
+                  {matchesList.map((m, idx) => {
+                    const isForfeit = m.reason === 'opponent_forfeit' || m.reason === 'tab_switch_forfeit';
+                    const scoreText =
+                      isForfeit && m.myScore === 0 && m.opponentScore === 0
+                        ? 'Forfeit'
+                        : `${m.myScore} - ${m.opponentScore}`;
+
+                    // Concise outcome pill with forfeit tag built-in
+                    let outcomeText = m.isWinner ? 'VICTORY' : m.isDraw ? 'DRAW' : 'DEFEAT';
+                    if (isForfeit) {
+                      outcomeText = m.isWinner ? 'VICTORY (Forfeit)' : 'DEFEAT (Forfeit)';
+                    }
+
+                    // XP Rule display
+                    const xpDisplay = isForfeit
+                      ? `Forfeit win +${m.xpAwarded} XP`
+                      : `+${m.xpAwarded} XP`;
+
+                    return (
+                      <tr
+                        key={m.matchId || idx}
+                        className="hover:bg-slate-800/40 transition-colors"
+                        style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', cursor: 'pointer' }}
+                        onClick={() => setSelectedMatchForBreakdown(m)}
+                      >
+                        <td style={{ padding: '0.85rem 1rem' }}>
                           <span
                             className="badge"
+                            title={isForfeit ? 'Match ended by forfeit' : ''}
                             style={{
                               fontSize: '0.65rem',
                               fontWeight: 800,
@@ -853,57 +1345,326 @@ export const ProfilePage = ({ onBackToArena }) => {
                                 : 'rgba(239, 68, 68, 0.22)',
                               color: m.isWinner ? '#6ee7b7' : m.isDraw ? '#fcd34d' : '#fca5a5',
                               border: `1px solid ${m.isWinner ? '#10b981' : m.isDraw ? '#f59e0b' : '#ef4444'}`,
+                              whiteSpace: 'nowrap',
                             }}
                           >
-                            {m.isWinner ? 'VICTORY' : m.isDraw ? 'DRAW' : 'DEFEAT'}
+                            {outcomeText}
                           </span>
-                          {m.reason === 'tab_switch_forfeit' && (
-                            <span
-                              className="badge badge-danger"
-                              style={{
-                                fontSize: '0.55rem',
-                                background: 'rgba(239, 68, 68, 0.2)',
-                                color: '#fca5a5',
-                                border: '1px solid rgba(239, 68, 68, 0.4)',
+                        </td>
+
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#e2e8f0' }}>
+                          {formatCategoryName(m.category)}
+                        </td>
+
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewOpponent({ username: m.opponentUsername, category: m.category });
+                            }}
+                            className="hover:underline font-semibold text-slate-200 hover:text-indigo-300 text-left"
+                          >
+                            {m.opponentUsername}
+                          </button>
+                        </td>
+
+                        <td style={{ padding: '0.85rem 1rem', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
+                          <span style={{ color: m.myScore > m.opponentScore ? '#6ee7b7' : '#cbd5e1' }}>
+                            {scoreText}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: '0.85rem 1rem', color: '#fcd34d', fontWeight: 700, fontSize: '0.85rem' }}>
+                          {xpDisplay}
+                        </td>
+
+                        <td
+                          style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.8rem' }}
+                          title={getRelativeTime(m.playedAt)}
+                        >
+                          {formatIndianDate(m.playedAt)}
+                        </td>
+
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRematch(m.category);
                               }}
+                              title="Rematch in Arena"
+                              className="btn btn-secondary"
+                              style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', minHeight: 28 }}
                             >
-                              TAB FORFEIT
-                            </span>
-                          )}
-                          {m.reason === 'opponent_forfeit' && (
-                            <span
-                              className="badge badge-warning"
-                              style={{
-                                fontSize: '0.55rem',
-                                background: 'rgba(245, 158, 11, 0.2)',
-                                color: '#fcd34d',
-                                border: '1px solid rgba(245, 158, 11, 0.4)',
-                              }}
-                            >
-                              DISCONNECT FORFEIT
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textTransform: 'capitalize' }}>{m.category}</td>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>{m.opponentUsername}</td>
-                      <td style={{ padding: '0.85rem 1rem', fontFamily: 'JetBrains Mono, monospace' }}>
-                        {m.myScore} - {m.opponentScore}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', color: '#fcd34d', fontWeight: 700 }}>
-                        +{m.xpAwarded} XP
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
-                        {new Date(m.playedAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                              <RotateCcw size={12} />
+                              <span>Rematch</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Responsive Cards View (< 640px) */}
+            <div className="block sm:hidden divide-y divide-slate-800">
+              {matchesList.map((m, idx) => {
+                const isForfeit = m.reason === 'opponent_forfeit' || m.reason === 'tab_switch_forfeit';
+                const scoreText =
+                  isForfeit && m.myScore === 0 && m.opponentScore === 0
+                    ? 'Forfeit'
+                    : `${m.myScore} - ${m.opponentScore}`;
+
+                let outcomeText = m.isWinner ? 'VICTORY' : m.isDraw ? 'DRAW' : 'DEFEAT';
+                if (isForfeit) {
+                  outcomeText = m.isWinner ? 'VICTORY (Forfeit)' : 'DEFEAT (Forfeit)';
+                }
+
+                const xpDisplay = isForfeit
+                  ? `Forfeit win +${m.xpAwarded} XP`
+                  : `+${m.xpAwarded} XP`;
+
+                return (
+                  <div
+                    key={m.matchId || idx}
+                    onClick={() => setSelectedMatchForBreakdown(m)}
+                    className="p-4 space-y-2 cursor-pointer hover:bg-slate-800/40 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className="badge"
+                        style={{
+                          fontSize: '0.62rem',
+                          fontWeight: 800,
+                          background: m.isWinner
+                            ? 'rgba(16, 185, 129, 0.22)'
+                            : m.isDraw
+                            ? 'rgba(245, 158, 11, 0.22)'
+                            : 'rgba(239, 68, 68, 0.22)',
+                          color: m.isWinner ? '#6ee7b7' : m.isDraw ? '#fcd34d' : '#fca5a5',
+                          border: `1px solid ${m.isWinner ? '#10b981' : m.isDraw ? '#f59e0b' : '#ef4444'}`,
+                        }}
+                      >
+                        {outcomeText}
+                      </span>
+                      <span className="text-xs text-slate-400" title={getRelativeTime(m.playedAt)}>
+                        {formatIndianDate(m.playedAt)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <span className="text-slate-400 text-xs">vs</span>{' '}
+                        <strong className="text-white">{m.opponentUsername}</strong>{' '}
+                        <span className="text-xs text-indigo-400">({formatCategoryName(m.category)})</span>
+                      </div>
+                      <div className="font-mono font-bold text-slate-200">{scoreText}</div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs font-bold text-amber-400">{xpDisplay}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRematch(m.category);
+                        }}
+                        className="btn btn-secondary text-xs px-2.5 py-1 min-h-[26px]"
+                      >
+                        <RotateCcw size={12} />
+                        <span>Rematch</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination / Load More Footer */}
+            {matchPage < paginationInfo.totalPages && (
+              <div style={{ padding: '1rem', textAlign: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.05)', background: 'rgba(15, 23, 42, 0.5)' }}>
+                <button
+                  type="button"
+                  onClick={handleLoadMoreMatches}
+                  disabled={loadingMoreMatches}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.85rem', padding: '0.45rem 1.25rem' }}
+                >
+                  {loadingMoreMatches ? 'Loading more...' : `Load more matches (${matchesList.length} of ${paginationInfo.total})`}
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </section>
+
+      {/* MATCH BREAKDOWN DIALOG MODAL */}
+      <Dialog
+        open={Boolean(selectedMatchForBreakdown)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedMatchForBreakdown(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md bg-[#182234] border-[#334155] text-slate-100 shadow-2xl z-[105]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Swords size={18} className="text-indigo-400" />
+              <span>Match Breakdown</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedMatchForBreakdown && (
+            <div className="space-y-4 py-2">
+              <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-700/50 flex justify-between items-center text-sm">
+                <div>
+                  <div className="text-xs text-slate-400">Category</div>
+                  <div className="font-semibold text-indigo-300">
+                    {formatCategoryName(selectedMatchForBreakdown.category)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-400">Opponent</div>
+                  <div className="font-semibold text-white">
+                    {selectedMatchForBreakdown.opponentUsername}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-400">Final Score</div>
+                  <div className="font-mono font-bold text-emerald-400">
+                    {selectedMatchForBreakdown.myScore} - {selectedMatchForBreakdown.opponentScore}
+                  </div>
+                </div>
+              </div>
+
+              {/* Question Summary */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Question Breakdown
+                </div>
+                {[1, 2, 3].map((qNum) => {
+                  const wasAnswered = selectedMatchForBreakdown.myScore > 0 || !selectedMatchForBreakdown.isForfeit;
+                  return (
+                    <div
+                      key={qNum}
+                      className="p-2.5 bg-slate-900/40 rounded border border-slate-800 flex items-center justify-between text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold">
+                          {qNum}
+                        </span>
+                        <span>Question {qNum}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={selectedMatchForBreakdown.isWinner ? 'text-emerald-400 font-semibold' : 'text-slate-400'}>
+                          {selectedMatchForBreakdown.isWinner ? '✓ Correct' : 'Attempted'}
+                        </span>
+                        <span className="text-slate-500 font-mono">
+                          {selectedMatchForBreakdown.isWinner ? '< 4s' : '5s'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* XP Rule Details */}
+              <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-200">
+                <strong>XP Rule:</strong> {selectedMatchForBreakdown.isForfeit ? 'Forfeit Win (+10 XP) due to opponent disconnect/forfeit' : 'Standard competitive duel (+50 XP win / +15 XP loss)'}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex sm:justify-between items-center gap-2 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                if (selectedMatchForBreakdown) {
+                  handleRematch(selectedMatchForBreakdown.category);
+                }
+              }}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white"
+            >
+              <RotateCcw size={14} className="mr-1.5" />
+              Rematch
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSelectedMatchForBreakdown(null)}
+              className="border-slate-700 text-slate-300"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* OPPONENT PREVIEW MODAL */}
+      <Dialog
+        open={Boolean(previewOpponent)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewOpponent(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm bg-[#182234] border-[#334155] text-slate-100 shadow-2xl z-[105]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <User size={18} className="text-indigo-400" />
+              <span>Competitor Profile</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {previewOpponent && (
+            <div className="py-4 text-center space-y-3">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white mx-auto shadow-lg">
+                {previewOpponent.username.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">@{previewOpponent.username}</h3>
+                <span className="badge badge-primary text-xs mt-1">SkillDuels Competitor</span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Competed against you in {formatCategoryName(previewOpponent.category)}.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="flex sm:justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                if (previewOpponent) {
+                  handleRematch(previewOpponent.category);
+                }
+              }}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white"
+            >
+              Challenge to Rematch
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPreviewOpponent(null)}
+              className="border-slate-700 text-slate-300"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Achievement Unlocked Celebration Animation Modal */}
+      <AchievementUnlockedModal
+        isOpen={Boolean(celebrateBadge)}
+        onClose={() => setCelebrateBadge(null)}
+        badge={celebrateBadge}
+      />
     </main>
   );
 };

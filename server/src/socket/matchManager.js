@@ -1,5 +1,6 @@
-const { fetchMatchQuestions, sanitizeQuestionForClient } = require('./questionService');
+const { getPlayableQuestions, sanitizeQuestionForClient, QUESTIONS_PER_MATCH, ERROR_CODES } = require('./questionService');
 const { awardMatchXP } = require('./xpService');
+const matchmaking = require('./matchmaking');
 
 /**
  * Match Manager
@@ -19,14 +20,43 @@ class MatchManager {
    * Initialize a new 1v1 duel match (FR-03, AC-01)
    */
   async createMatch(io, player1, player2, category = 'technical') {
+    // Check Point c): Validate and fetch questions strictly from selected category.
+    // An admin may have deleted or deactivated questions while players waited.
+    let questions;
+    try {
+      questions = await getPlayableQuestions(category);
+    } catch (err) {
+      console.warn(`[Match Engine] Cannot create match for category '${category}': ${err.message}`);
+
+      // Clean up queue entries for both players
+      matchmaking.dequeue(player1.socketId);
+      matchmaking.dequeue(player2.socketId);
+
+      const errorPayload = {
+        code: err.code || ERROR_CODES.CATEGORY_NOT_ENOUGH_QUESTIONS,
+        message: err.message,
+        category: err.category || category,
+        available: err.available !== undefined ? err.available : 0,
+        required: err.required !== undefined ? err.required : QUESTIONS_PER_MATCH,
+      };
+
+      // Notify both players of the match cancellation and create NO match document
+      io.to(player1.socketId).emit('matchError', errorPayload);
+      io.to(player2.socketId).emit('matchError', errorPayload);
+      io.to(player1.socketId).emit('queue_error', errorPayload);
+      io.to(player2.socketId).emit('queue_error', errorPayload);
+
+      return null;
+    }
+
     const matchId = `match_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const questions = await fetchMatchQuestions(category, 5);
 
     const matchState = {
       id: matchId,
       category,
       room: matchId,
       questions,
+      questionIds: questions.map((q) => q.id),
       currentQuestionIndex: 0,
       state: 'starting', // 'starting' | 'in_progress' | 'intermission' | 'finished'
       timer: null,
@@ -69,8 +99,10 @@ class MatchManager {
 
     console.log(`[Match Engine] Match created: ${matchId} (${player1.username} vs ${player2.username})`);
 
-    // Emit match_start to both players with opponent info
-    io.to(player1.socketId).emit('match_start', {
+    // Prepare client-safe question set: secret answers stripped, identical order for both players (AC-01)
+    const clientQuestions = questions.map((q, idx) => sanitizeQuestionForClient(q, idx, questions.length));
+
+    const p1StartPayload = {
       matchId,
       category,
       opponent: {
@@ -78,9 +110,10 @@ class MatchManager {
         username: player2.username,
       },
       totalQuestions: questions.length,
-    });
+      questions: clientQuestions,
+    };
 
-    io.to(player2.socketId).emit('match_start', {
+    const p2StartPayload = {
       matchId,
       category,
       opponent: {
@@ -88,7 +121,14 @@ class MatchManager {
         username: player1.username,
       },
       totalQuestions: questions.length,
-    });
+      questions: clientQuestions,
+    };
+
+    // Emit matchFound and match_start to both players
+    io.to(player1.socketId).emit('matchFound', p1StartPayload);
+    io.to(player2.socketId).emit('matchFound', p2StartPayload);
+    io.to(player1.socketId).emit('match_start', p1StartPayload);
+    io.to(player2.socketId).emit('match_start', p2StartPayload);
 
     // Start 3-second countdown before first question
     setTimeout(() => {
@@ -374,6 +414,7 @@ class MatchManager {
       winnerId,
       reason,
       totalQuestions: match.questions.length,
+      questionIds: match.questionIds || [],
     });
 
     const finalPayload = {

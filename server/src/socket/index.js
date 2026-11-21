@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 const { authenticateSocket } = require('../middleware/auth.middleware');
 const matchmaking = require('./matchmaking');
 const matchManager = require('./matchManager');
+const { checkCategoryPlayable, QUESTIONS_PER_MATCH, ERROR_CODES } = require('./questionService');
 
 /**
  * Configure and initialize Socket.IO server (FR-03, FR-04, FR-05)
@@ -38,13 +39,53 @@ const initSocketServer = (httpServer) => {
     }
 
     /**
-     * Event: Join Matchmaking Queue (FR-03)
-     * Payload: { category?: 'technical' | 'aptitude' | 'logical' }
+     * Event: Join Matchmaking Queue / Find Opponent (FR-03)
+     * Payload: { category?: 'technical' | 'aptitude' | 'logical' | 'dsa' | 'ml' | 'web-dev' }
      */
-    socket.on('join_queue', ({ category = 'technical' } = {}) => {
-      // Dequeue if already queued
-      matchmaking.dequeue(socket.id);
+    const handleFindOpponent = async ({ category = 'technical' } = {}) => {
+      // 1. Double-click prevention: do not enqueue if already queued or actively matching
+      if (matchmaking.isQueued(socket.id) || matchmaking.isQueued(userId)) {
+        console.warn(`[Matchmaking] Duplicate queue attempt prevented for ${username}`);
+        return;
+      }
 
+      // 2. Prevent queueing if already in an active match
+      const activeOngoingMatch = matchManager.userToMatch.get(userId);
+      if (activeOngoingMatch) {
+        socket.emit('matchError', {
+          code: 'ACTIVE_MATCH_EXISTS',
+          message: 'You already have a battle in progress. Please rejoin or finish it.',
+          category,
+        });
+        return;
+      }
+
+      // 3. Check Point b): Verify that category has at least QUESTIONS_PER_MATCH (5) active questions
+      const checkResult = await checkCategoryPlayable(category);
+      if (!checkResult.playable) {
+        console.warn(`[Matchmaking] Blocked queue join: ${checkResult.error?.message}`);
+        const errorPayload = {
+          code: checkResult.error?.code || (checkResult.questionCount === 0 ? ERROR_CODES.CATEGORY_HAS_NO_QUESTIONS : ERROR_CODES.CATEGORY_NOT_ENOUGH_QUESTIONS),
+          message: checkResult.error?.message || `Category ${category} does not have enough active questions.`,
+          category: checkResult.categoryName || category,
+          available: checkResult.questionCount,
+          required: QUESTIONS_PER_MATCH,
+        };
+
+        // Emit matchError and queue_error ONLY to this player socket
+        socket.emit('matchError', errorPayload);
+        socket.emit('queue_error', errorPayload);
+        return;
+      }
+
+      // 4. Edge Case: Check if player disconnected during the async validation
+      if (!socket.connected) {
+        matchmaking.dequeue(socket.id);
+        matchmaking.dequeue(userId);
+        return;
+      }
+
+      // 5. Add to queue and pair when opponent is found
       matchmaking.enqueue(
         {
           userId,
@@ -53,16 +94,19 @@ const initSocketServer = (httpServer) => {
           category,
         },
         (player1, player2, matchedCategory) => {
-          // Pair players into room and start match
+          // Pair players into room and start match (Check Point c runs inside createMatch)
           matchManager.createMatch(io, player1, player2, matchedCategory);
         }
       );
 
       socket.emit('queue_joined', {
         category,
-        message: `Searching for an opponent in '${category}'...`,
+        message: `Searching for an opponent in '${checkResult.categoryName}'...`,
       });
-    });
+    };
+
+    socket.on('findOpponent', handleFindOpponent);
+    socket.on('join_queue', handleFindOpponent);
 
     /**
      * Event: Leave Matchmaking Queue

@@ -1,8 +1,35 @@
-import React, { useReducer, useEffect, useCallback, useState } from 'react';
+import React, { useReducer, useEffect, useCallback, useState, useRef } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
-import { Clock, Shield, CheckCircle2, XCircle, Zap, AlertCircle, AlertTriangle, ShieldAlert } from 'lucide-react';
+import {
+  Clock,
+  Shield,
+  CheckCircle2,
+  XCircle,
+  Zap,
+  AlertCircle,
+  AlertTriangle,
+  ShieldAlert,
+  Lock,
+  Swords,
+  Sparkles,
+} from 'lucide-react';
 import { getAvatarUrl } from '../utils/avatar';
+
+const CATEGORY_DISPLAY_MAP = {
+  dsa: 'Data Structures & Algorithms',
+  logical: 'Logical Reasoning',
+  ml: 'Machine Learning',
+  aptitude: 'Quantitative Aptitude',
+  technical: 'Technical & CS',
+  'web-dev': 'Web Development',
+};
+
+const formatCategoryName = (slugOrName) => {
+  if (!slugOrName) return 'DSA';
+  const lower = slugOrName.toLowerCase();
+  return CATEGORY_DISPLAY_MAP[lower] || slugOrName;
+};
 
 // Battle Reducer (FR-04, FR-05)
 const battleReducer = (state, action) => {
@@ -15,6 +42,7 @@ const battleReducer = (state, action) => {
         selectedOption: null,
         isAnswerSubmitted: false,
         revealedAnswer: null,
+        opponentAnswered: false,
         phase: 'active',
       };
 
@@ -35,27 +63,40 @@ const battleReducer = (state, action) => {
       const scores = action.payload.scores || {};
       const currentUserId = action.payload.currentUserId;
       const opponentId = action.payload.opponentId;
+      const isOpponentAnswer =
+        action.payload.lastAnsweredBy?.userId?.toString() === opponentId?.toString() ||
+        (scores[opponentId] !== undefined && scores[opponentId] !== state.opponentScore);
 
       return {
         ...state,
         playerScore: scores[currentUserId] !== undefined ? scores[currentUserId] : state.playerScore,
         opponentScore: scores[opponentId] !== undefined ? scores[opponentId] : state.opponentScore,
+        opponentAnswered: isOpponentAnswer ? true : state.opponentAnswered,
       };
     }
 
-    case 'QUESTION_ENDED':
+    case 'QUESTION_ENDED': {
+      const revealedAnswer = action.payload;
+      const qIdx = (state.currentQuestion?.questionNumber || 1) - 1;
+      const isCorrect = state.selectedOption === revealedAnswer?.correctOptionIndex;
+      const updatedResults = [...state.questionResults];
+      updatedResults[qIdx] = state.selectedOption !== null ? (isCorrect ? 'correct' : 'wrong') : 'wrong';
+
       return {
         ...state,
         phase: 'intermission',
-        revealedAnswer: action.payload,
+        revealedAnswer,
         remainingSeconds: 0,
+        opponentAnswered: true,
+        questionResults: updatedResults,
       };
+    }
 
     case 'OPPONENT_DISCONNECTED':
       return {
         ...state,
         opponentDisconnected: true,
-        disconnectGraceSeconds: action.payload.gracePeriodSeconds || 20,
+        disconnectGraceSeconds: action.payload.gracePeriodSeconds || 15,
       };
 
     case 'OPPONENT_RECONNECTED':
@@ -107,6 +148,8 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
     selectedOption: null,
     isAnswerSubmitted: false,
     revealedAnswer: null,
+    opponentAnswered: false,
+    questionResults: [],
     phase: 'waiting',
     opponentDisconnected: false,
     disconnectGraceSeconds: 0,
@@ -120,12 +163,106 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
     selectedOption,
     isAnswerSubmitted,
     revealedAnswer,
+    opponentAnswered,
+    questionResults,
     phase,
     opponentDisconnected,
+    disconnectGraceSeconds,
   } = state;
 
+  // Strike count & Fair play banners
+  const [userStrikes, setUserStrikes] = useState(0);
+  const [opponentStrikes, setOpponentStrikes] = useState(0);
   const [tabWarning, setTabWarning] = useState(null);
   const [opponentWarning, setOpponentWarning] = useState(null);
+
+  // Score popups (+100 animation beside score)
+  const [playerPop, setPlayerPop] = useState(null);
+  const [opponentPop, setOpponentPop] = useState(null);
+  const prevPlayerScoreRef = useRef(0);
+  const prevOpponentScoreRef = useRef(0);
+
+  // Disconnect countdown timer
+  const [disconnectRemaining, setDisconnectRemaining] = useState(15);
+
+  // Pre-match 3-2-1 countdown screen
+  const [preCountdown, setPreCountdown] = useState(3);
+  const [isCountdownDone, setIsCountdownDone] = useState(false);
+
+  // Auto-dismiss fair-play banners after 5 seconds
+  useEffect(() => {
+    if (tabWarning) {
+      const t = setTimeout(() => setTabWarning(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [tabWarning]);
+
+  useEffect(() => {
+    if (opponentWarning) {
+      const t = setTimeout(() => setOpponentWarning(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [opponentWarning]);
+
+  // Handle score popups on change
+  useEffect(() => {
+    if (playerScore > prevPlayerScoreRef.current) {
+      const diff = playerScore - prevPlayerScoreRef.current;
+      setPlayerPop(`+${diff}`);
+      const t = setTimeout(() => setPlayerPop(null), 1400);
+      return () => clearTimeout(t);
+    }
+    prevPlayerScoreRef.current = playerScore;
+  }, [playerScore]);
+
+  useEffect(() => {
+    if (opponentScore > prevOpponentScoreRef.current) {
+      const diff = opponentScore - prevOpponentScoreRef.current;
+      setOpponentPop(`+${diff}`);
+      const t = setTimeout(() => setOpponentPop(null), 1400);
+      return () => clearTimeout(t);
+    }
+    prevOpponentScoreRef.current = opponentScore;
+  }, [opponentScore]);
+
+  // Disconnect grace countdown
+  useEffect(() => {
+    let interval;
+    if (opponentDisconnected) {
+      setDisconnectRemaining(disconnectGraceSeconds || 15);
+      interval = setInterval(() => {
+        setDisconnectRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [opponentDisconnected, disconnectGraceSeconds]);
+
+  // Pre-match 3-2-1 countdown sequence: strictly waits for questions payload from server
+  useEffect(() => {
+    if (isCountdownDone) return;
+    if ((!initialMatchData?.questions || initialMatchData.questions.length === 0) && !currentQuestion) {
+      return; // Never run countdown until match questions payload is delivered
+    }
+    const interval = setInterval(() => {
+      setPreCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setIsCountdownDone(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 750);
+    return () => clearInterval(interval);
+  }, [isCountdownDone, initialMatchData?.questions, currentQuestion]);
 
   // Fair Play Anti-Cheat: Detect Tab Switching (Page Visibility API)
   useEffect(() => {
@@ -178,6 +315,7 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
     if (!socket) return;
 
     const handleNewQuestion = (qData) => {
+      setIsCountdownDone(true);
       dispatch({ type: 'NEW_QUESTION', payload: qData });
     };
 
@@ -192,6 +330,7 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
           scores: sData.scores,
           currentUserId,
           opponentId: opponent.userId,
+          lastAnsweredBy: sData.lastAnsweredBy,
         },
       });
     };
@@ -214,6 +353,7 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
     };
 
     const handleMatchSync = (syncData) => {
+      setIsCountdownDone(true);
       dispatch({
         type: 'MATCH_SYNC',
         payload: {
@@ -225,14 +365,27 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
     };
 
     const handleTabWarning = (wData) => {
-      setTabWarning(wData);
+      const strikes = wData.strikeCount || 1;
+      setUserStrikes(strikes);
+      const remaining = Math.max(0, 3 - strikes);
+      setTabWarning({
+        strikeCount: strikes,
+        maxStrikes: wData.maxStrikes || 3,
+        message:
+          strikes >= 3
+            ? 'You have been disqualified for 3 strike violations.'
+            : `Fair Play: You left the quiz window! You have ${remaining} strike${remaining === 1 ? '' : 's'} left.`,
+      });
     };
 
     const handleOpponentTabWarning = (owData) => {
-      setOpponentWarning(owData);
-      setTimeout(() => {
-        setOpponentWarning(null);
-      }, 6000);
+      const strikes = owData.strikeCount || 1;
+      setOpponentStrikes(strikes);
+      setOpponentWarning({
+        strikeCount: strikes,
+        maxStrikes: owData.maxStrikes || 3,
+        message: `Fair Play: ${opponent.username} left the quiz window (Strike ${strikes}/3)`,
+      });
     };
 
     socket.on('new_question', handleNewQuestion);
@@ -263,97 +416,255 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
     };
   }, [socket, currentUserId, opponent.userId, onMatchFinished]);
 
-  // Timer urgency color
+  // Timer urgency color & pulse
   const timerColor =
-    remainingSeconds <= 3 ? 'var(--color-danger)' : remainingSeconds <= 6 ? 'var(--color-warning)' : 'var(--color-success)';
+    remainingSeconds <= 4 ? '#ef4444' : remainingSeconds <= 9 ? '#f59e0b' : '#818cf8';
+
+  const timeLimitTotal = currentQuestion?.timeLimit || 10;
+  const timerRadius = 40;
+  const timerCircumference = 2 * Math.PI * timerRadius; // ~251.33
+  const timerProgress = Math.max(0, remainingSeconds) / timeLimitTotal;
+  const strokeDashoffset = timerCircumference - timerCircumference * timerProgress;
+
+  // Category formatted
+  const displayCategory = formatCategoryName(currentQuestion?.category || initialMatchData?.category);
+
+  // Guard: Never show question screen, countdown, or timer unless matchFound with questions payload was received
+  if ((!initialMatchData?.questions || initialMatchData.questions.length === 0) && !currentQuestion) {
+    return (
+      <main className="container" style={{ maxWidth: 640, paddingTop: '5.5rem', textAlign: 'center' }}>
+        <div className="card" style={{ padding: '3rem 2rem' }}>
+          <div style={{ display: 'inline-flex', padding: '1rem', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '50%', marginBottom: '1.25rem' }}>
+            <Swords size={36} color="#818cf8" />
+          </div>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            Awaiting Match Questions...
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: 450, margin: '0 auto' }}>
+            The duel will begin as soon as verified questions from category <strong>{displayCategory}</strong> are delivered by the battle server.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // Pre-Match 3-2-1 Countdown Screen (AC-01)
+  if (!isCountdownDone && (!currentQuestion || phase === 'waiting')) {
+    return (
+      <main className="container" style={{ maxWidth: 700, paddingTop: '4rem', paddingBottom: '3rem' }}>
+        <style>{`
+          @keyframes countdownPop {
+            0% { transform: scale(0.6); opacity: 0; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+        `}</style>
+        <div
+          className="card"
+          style={{
+            textAlign: 'center',
+            padding: '3.5rem 2rem',
+            background: 'linear-gradient(180deg, #131b2e 0%, #0c131d 100%)',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(99, 102, 241, 0.2)',
+          }}
+        >
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <Swords size={20} color="#818cf8" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#818cf8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              1v1 Battle Arena
+            </span>
+          </div>
+
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ffffff', marginBottom: '0.5rem' }}>
+            Category: <span style={{ color: '#818cf8' }}>{displayCategory}</span>
+          </h2>
+          <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '2.5rem' }}>
+            Synchronizing live battle arena... Duel commences in
+          </p>
+
+          {/* Big Pulsing 3-2-1 Badge */}
+          <div
+            key={preCountdown}
+            style={{
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              margin: '0 auto 2.5rem',
+              display: 'grid',
+              placeItems: 'center',
+              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(15, 23, 42, 0.9) 100%)',
+              border: '3px solid #818cf8',
+              boxShadow: '0 0 40px rgba(99, 102, 241, 0.4), inset 0 0 20px rgba(99, 102, 241, 0.2)',
+              animation: 'countdownPop 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            <span
+              style={{
+                fontSize: preCountdown === 0 ? '1.75rem' : '3.5rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                fontFamily: 'JetBrains Mono, monospace',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {preCountdown === 0 ? 'DUEL!' : preCountdown}
+            </span>
+          </div>
+
+          {/* Player vs Opponent Chips */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: '#6366f1',
+                  color: '#ffffff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                }}
+              >
+                {(user?.username || 'Y').charAt(0).toUpperCase()}
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <span style={{ fontSize: '0.75rem', color: '#818cf8', fontWeight: 800 }}>YOU</span>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff' }}>{user?.username}</div>
+              </div>
+            </div>
+
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#475569' }}>VS</span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: '#f59e0b',
+                  color: '#ffffff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                }}
+              >
+                {opponent.username.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 800 }}>OPPONENT</span>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff' }}>{opponent.username}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="container" style={{ maxWidth: 900, paddingTop: '1.5rem' }}>
-      {/* Fair Play Anti-Cheat Warning Alert */}
+    <main className="container" style={{ maxWidth: 920, paddingTop: '1.25rem', paddingBottom: '2.5rem' }}>
+      <style>{`
+        @keyframes timerPulse {
+          0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4)); }
+          50% { transform: scale(1.06); filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.9)); }
+        }
+        @keyframes scoreFloatUp {
+          0% { transform: translateY(0) scale(0.8); opacity: 0; }
+          25% { transform: translateY(-4px) scale(1.15); opacity: 1; }
+          100% { transform: translateY(-22px) scale(0.95); opacity: 0; }
+        }
+        .match-option-button:focus-visible {
+          outline: 2px solid #818cf8 !important;
+          outline-offset: 2px !important;
+        }
+      `}</style>
+
+      {/* Fair Play Anti-Cheat Warning Alert (Auto-dismisses in 5s) */}
       {tabWarning && (
         <div
           role="alert"
           style={{
-            background: 'rgba(239, 68, 68, 0.18)',
-            border: '2px solid #ef4444',
+            background: 'rgba(245, 158, 11, 0.16)',
+            border: '2px solid #f59e0b',
             borderRadius: 'var(--radius-md)',
-            padding: '1rem 1.25rem',
-            marginBottom: '1.5rem',
+            padding: '0.85rem 1.25rem',
+            marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '1rem',
-            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)',
+            gap: '0.85rem',
+            boxShadow: '0 0 20px rgba(245, 158, 11, 0.25)',
+            animation: 'fadeIn 0.2s ease-out',
           }}
         >
           <div
             style={{
-              width: 44,
-              height: 44,
+              width: 36,
+              height: 36,
               borderRadius: '50%',
-              background: '#ef4444',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
+              background: '#f59e0b',
+              display: 'grid',
+              placeItems: 'center',
+              color: '#1e293b',
               flexShrink: 0,
             }}
           >
-            <ShieldAlert size={26} />
+            <ShieldAlert size={20} />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <span
-                style={{
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: 'var(--radius-sm)',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                STRIKE {tabWarning.strikeCount} / {tabWarning.maxStrikes}
-              </span>
-              <strong style={{ color: '#fca5a5', fontSize: '0.95rem' }}>
-                ANTI-CHEAT FAIR PLAY WARNING
-              </strong>
-            </div>
-            <p style={{ margin: 0, color: '#fecaca', fontSize: '0.875rem', fontWeight: 500 }}>
+            <strong style={{ color: '#fef3c7', fontSize: '0.9rem', display: 'block', marginBottom: '0.15rem' }}>
+              Fair Play Warning (Auto-dismissing)
+            </strong>
+            <p style={{ margin: 0, color: '#fde68a', fontSize: '0.85rem', fontWeight: 500 }}>
               {tabWarning.message}
             </p>
           </div>
         </div>
       )}
 
-      {/* Opponent Tab Switch Notice */}
+      {/* Opponent Tab Switch Notice (Auto-dismisses in 5s) */}
       {opponentWarning && (
         <div
           role="status"
           style={{
-            background: 'rgba(245, 158, 11, 0.15)',
-            border: '1px solid #f59e0b',
+            background: 'rgba(99, 102, 241, 0.15)',
+            border: '1px solid #818cf8',
             borderRadius: 'var(--radius-md)',
             padding: '0.75rem 1rem',
-            marginBottom: '1.5rem',
+            marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem',
+            animation: 'fadeIn 0.2s ease-out',
           }}
         >
-          <AlertTriangle size={20} color="#f59e0b" />
-          <div style={{ fontSize: '0.85rem', color: '#fef3c7' }}>
-            <strong>Fair Play System:</strong> {opponentWarning.message}
+          <AlertTriangle size={18} color="#818cf8" />
+          <div style={{ fontSize: '0.85rem', color: '#e0e7ff' }}>
+            {opponentWarning.message}
           </div>
         </div>
       )}
 
       {/* Reconnect / Disconnect Warning Banner (NFR-04) */}
       {opponentDisconnected && (
-        <div className="alert alert-danger" role="alert" style={{ marginBottom: '1.5rem' }}>
-          <AlertCircle size={20} />
+        <div
+          className="alert alert-danger"
+          role="alert"
+          style={{
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            background: 'rgba(239, 68, 68, 0.18)',
+            border: '2px solid #ef4444',
+          }}
+        >
+          <AlertCircle size={22} color="#ef4444" />
           <div>
-            <strong>Opponent disconnected!</strong> Waiting up to 20 seconds for them to reconnect before forfeit victory.
+            <strong>Opponent disconnected!</strong> Waiting up to <strong>{disconnectRemaining}s</strong> for them to reconnect before forfeit victory.
           </div>
         </div>
       )}
@@ -366,14 +677,16 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
-          gap: '1rem',
-          padding: '1.25rem 2rem',
-          marginBottom: '2rem',
-          background: 'var(--bg-secondary)',
+          gap: '1.25rem',
+          padding: '1.25rem 1.75rem',
+          marginBottom: '1.5rem',
+          background: '#131b2e',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 20,
         }}
       >
-        {/* Player 1 (You) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        {/* Player 1 (You) - Left Side, Indigo Theme */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {user?.avatarUrl ? (
             <img
               src={getAvatarUrl(user.avatarUrl)}
@@ -382,67 +695,117 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
                 e.currentTarget.style.display = 'none';
               }}
               style={{
-                width: 44,
-                height: 44,
-                minWidth: 44,
+                width: 48,
+                height: 48,
+                minWidth: 48,
                 borderRadius: '50%',
                 objectFit: 'cover',
-                border: '2px solid #818cf8',
+                border: '2px solid #6366f1',
               }}
             />
           ) : (
             <div
               className="match-avatar-circle"
               style={{
-                width: 44,
-                height: 44,
-                minWidth: 44,
+                width: 48,
+                height: 48,
+                minWidth: 48,
                 borderRadius: '50%',
-                background: 'var(--accent-gradient)',
+                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                border: '2px solid #6366f1',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 800,
-                fontSize: '1.1rem',
+                fontSize: '1.2rem',
+                color: '#ffffff',
               }}
             >
               {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
             </div>
           )}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span className="match-user-name" style={{ fontWeight: 700, fontSize: '0.95rem' }}>{user?.username || 'You'}</span>
-              <span className="badge badge-primary" style={{ fontSize: '0.6rem', padding: '0.15rem 0.45rem' }}>YOU</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.15rem' }}>
+              <span className="badge" style={{ background: '#6366f1', color: '#ffffff', fontSize: '0.65rem', padding: '0.15rem 0.45rem', fontWeight: 800 }}>
+                YOU
+              </span>
+              <span className="match-user-name" style={{ fontWeight: 700, fontSize: '0.95rem', color: '#ffffff' }}>
+                {user?.username || 'You'}
+              </span>
+              {/* Strike dots for You */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '3px' }} title={`${userStrikes}/3 Strikes`}>
+                {[1, 2, 3].map((s) => (
+                  <span
+                    key={s}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: s <= userStrikes ? '#ef4444' : '#334155',
+                      boxShadow: s <= userStrikes ? '0 0 6px #ef4444' : 'none',
+                      display: 'inline-block',
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="match-user-score" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#818cf8', fontFamily: 'JetBrains Mono, monospace' }}>
-              {playerScore} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PTS</span>
+
+            {/* Score & Pop */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+              <div className="match-user-score" style={{ fontSize: '1.5rem', fontWeight: 800, color: '#818cf8', fontFamily: 'JetBrains Mono, monospace' }}>
+                {playerScore} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PTS</span>
+              </div>
+              {playerPop && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '100%',
+                    top: '-6px',
+                    marginLeft: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: 800,
+                    color: '#10b981',
+                    animation: 'scoreFloatUp 1.2s ease-out forwards',
+                  }}
+                >
+                  {playerPop}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Center: Server-Authoritative Countdown Timer (FR-04, AC-03) */}
+        {/* Center: Large 96px Countdown Timer (FR-04, AC-03) */}
         <div style={{ textAlign: 'center', position: 'relative' }}>
           <div
             role="timer"
             aria-live="polite"
             aria-atomic="true"
-            aria-label={`${remainingSeconds} seconds remaining for this question`}
+            aria-label={`${remainingSeconds} seconds remaining`}
             className="match-timer-box"
-            style={{ position: 'relative', width: 62, height: 62, margin: '0 auto 0.2rem' }}
+            style={{
+              position: 'relative',
+              width: 96,
+              height: 96,
+              margin: '0 auto',
+              animation: remainingSeconds <= 3 && phase === 'active' ? 'timerPulse 0.6s infinite ease-in-out' : 'none',
+            }}
           >
-            <svg width="62" height="62" viewBox="0 0 62 62" style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx="31" cy="31" r="26" fill="var(--bg-input)" stroke="#334155" strokeWidth="4" />
+            <svg width="96" height="96" viewBox="0 0 96 96" style={{ transform: 'rotate(-90deg)' }}>
+              {/* Background ring */}
+              <circle cx="48" cy="48" r={timerRadius} fill="#0c131d" stroke="#1e293b" strokeWidth="6" />
+              {/* Animated Progress ring */}
               <circle
-                cx="31"
-                cy="31"
-                r="26"
+                cx="48"
+                cy="48"
+                r={timerRadius}
                 fill="transparent"
                 stroke={timerColor}
-                strokeWidth="4"
-                strokeDasharray={163.36}
-                strokeDashoffset={163.36 - (163.36 * Math.max(0, remainingSeconds)) / 10}
+                strokeWidth="6"
+                strokeDasharray={timerCircumference}
+                strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
-                style={{ transition: 'stroke-dashoffset 0.5s linear, stroke 0.3s ease' }}
+                style={{ transition: 'stroke-dashoffset 0.8s linear, stroke 0.3s ease' }}
               />
             </svg>
             <div
@@ -450,80 +813,187 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
                 position: 'absolute',
                 inset: 0,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                color: timerColor,
               }}
             >
-              {remainingSeconds}
+              <span
+                style={{
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '1.85rem',
+                  fontWeight: 900,
+                  color: timerColor,
+                  lineHeight: 1,
+                }}
+              >
+                {Math.max(0, remainingSeconds)}
+              </span>
+              <span style={{ fontSize: '0.625rem', color: '#64748b', fontWeight: 600, marginTop: '2px', textTransform: 'uppercase' }}>
+                {timeLimitTotal}s Total
+              </span>
             </div>
           </div>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            SECONDS
-          </span>
         </div>
 
-        {/* Player 2 (Opponent) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem' }}>
+        {/* Player 2 (Opponent) - Right Side, Amber Theme */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
-              <span className="badge badge-warning" style={{ fontSize: '0.6rem', padding: '0.15rem 0.45rem' }}>OPP</span>
-              <span className="match-user-name" style={{ fontWeight: 700, fontSize: '0.95rem' }}>{opponent.username}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem', marginBottom: '0.15rem' }}>
+              {/* Strike dots for Opponent */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginRight: '3px' }} title={`${opponentStrikes}/3 Strikes`}>
+                {[1, 2, 3].map((s) => (
+                  <span
+                    key={s}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: s <= opponentStrikes ? '#ef4444' : '#334155',
+                      boxShadow: s <= opponentStrikes ? '0 0 6px #ef4444' : 'none',
+                      display: 'inline-block',
+                    }}
+                  />
+                ))}
+              </div>
+              <span className="match-user-name" style={{ fontWeight: 700, fontSize: '0.95rem', color: '#ffffff' }}>
+                {opponent.username}
+              </span>
+              <span
+                className="badge"
+                style={{
+                  background: 'rgba(245, 158, 11, 0.2)',
+                  color: '#f59e0b',
+                  border: '1px solid #f59e0b',
+                  fontSize: '0.65rem',
+                  padding: '0.15rem 0.45rem',
+                  fontWeight: 800,
+                }}
+              >
+                OPP
+              </span>
             </div>
-            <div className="match-user-score" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f59e0b', fontFamily: 'JetBrains Mono, monospace' }}>
-              {opponentScore} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PTS</span>
+
+            {/* Live Opponent Status Indicator (Thinking / Answered) */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '0.2rem' }}>
+              {opponentAnswered ? (
+                <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <CheckCircle2 size={13} />
+                  Answered
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span
+                    className="animate-pulse"
+                    style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}
+                  />
+                  Thinking…
+                </span>
+              )}
+            </div>
+
+            {/* Score & Pop */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '0.35rem' }}>
+              {opponentPop && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    right: '100%',
+                    top: '-6px',
+                    marginRight: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: 800,
+                    color: '#f59e0b',
+                    animation: 'scoreFloatUp 1.2s ease-out forwards',
+                  }}
+                >
+                  {opponentPop}
+                </span>
+              )}
+              <div className="match-user-score" style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f59e0b', fontFamily: 'JetBrains Mono, monospace' }}>
+                {opponentScore} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PTS</span>
+              </div>
             </div>
           </div>
+
           <div
             className="match-avatar-circle"
             style={{
-              width: 44,
-              height: 44,
-              minWidth: 44,
+              width: 48,
+              height: 48,
+              minWidth: 48,
               borderRadius: '50%',
-              background: 'rgba(245, 158, 11, 0.2)',
+              background: 'rgba(245, 158, 11, 0.15)',
               border: '2px solid #f59e0b',
               color: '#f59e0b',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 800,
-              fontSize: '1.1rem',
+              fontSize: '1.2rem',
             }}
           >
             {opponent.username.charAt(0).toUpperCase()}
           </div>
         </div>
 
-        {/* Live Head-to-Head Score Bar */}
+        {/* Live Head-to-Head Score Bar with Center Notch */}
         <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-            <span>Live Score Differential</span>
-            <span>
-              {playerScore > opponentScore
-                ? `You lead by ${playerScore - opponentScore} pts`
-                : opponentScore > playerScore
-                ? `Opponent leads by ${opponentScore - playerScore} pts`
-                : 'Tied Score'}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.45rem' }}>
+            <span style={{ fontWeight: 600 }}>You vs {opponent.username}</span>
+            <span
+              style={{
+                fontWeight: 700,
+                color:
+                  playerScore === opponentScore
+                    ? '#94a3b8'
+                    : playerScore > opponentScore
+                    ? '#818cf8'
+                    : '#f59e0b',
+              }}
+            >
+              {playerScore === opponentScore
+                ? 'Scores Tied'
+                : playerScore > opponentScore
+                ? `You lead by ${playerScore - opponentScore}`
+                : `${opponent.username} leads by ${opponentScore - playerScore}`}
             </span>
           </div>
-          <div style={{ height: 6, background: '#334155', borderRadius: 999, overflow: 'hidden', display: 'flex' }}>
+
+          <div style={{ position: 'relative', height: 8, background: '#1e293b', borderRadius: 999, overflow: 'visible', display: 'flex' }}>
+            {/* You bar (Indigo) */}
             <div
               style={{
                 width: `${playerScore + opponentScore > 0 ? (playerScore / (playerScore + opponentScore)) * 100 : 50}%`,
-                background: '#818cf8',
+                background: '#6366f1',
+                borderRadius: '999px 0 0 999px',
                 transition: 'width 0.4s ease',
               }}
             />
+            {/* Opponent bar (Amber) */}
             <div
               style={{
                 width: `${playerScore + opponentScore > 0 ? (opponentScore / (playerScore + opponentScore)) * 100 : 50}%`,
                 background: '#f59e0b',
+                borderRadius: '0 999px 999px 0',
                 transition: 'width 0.4s ease',
               }}
+            />
+            {/* Center Notch Indicator (instead of stray cursor) */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: -3,
+                transform: 'translateX(-50%)',
+                width: 4,
+                height: 14,
+                borderRadius: 2,
+                background: '#ffffff',
+                boxShadow: '0 0 8px rgba(255, 255, 255, 0.9)',
+                zIndex: 2,
+              }}
+              title="Tied midpoint"
             />
           </div>
         </div>
@@ -531,47 +1001,70 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
 
       {/* Question Card & Accessible Options (AC-01, NFR-05, NFR-07) */}
       {currentQuestion ? (
-        <section className="card" style={{ padding: '2rem' }}>
+        <section
+          className="card"
+          style={{
+            padding: '1.75rem 2rem 2.25rem',
+            background: '#131b2e',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: 20,
+          }}
+        >
           {/* Question Meta Header & Step Dots */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <span className="badge badge-primary">
-                Question {currentQuestion.questionNumber} of {currentQuestion.totalQuestions}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span className="badge badge-primary" style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
+                Question {currentQuestion.questionNumber} of {currentQuestion.totalQuestions || 5}
               </span>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              {/* Question Run Progress Dots */}
+              <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                 {Array.from({ length: currentQuestion.totalQuestions || 5 }).map((_, stepIdx) => {
                   const stepNum = stepIdx + 1;
                   const isCurrent = stepNum === currentQuestion.questionNumber;
-                  const isDone = stepNum < currentQuestion.questionNumber;
+                  const pastResult = questionResults[stepIdx];
+
+                  let dotColor = '#334155';
+                  if (pastResult === 'correct') dotColor = '#10b981';
+                  else if (pastResult === 'wrong') dotColor = '#ef4444';
+                  else if (isCurrent) dotColor = '#818cf8';
+
                   return (
                     <div
                       key={stepIdx}
                       style={{
-                        width: isCurrent ? 18 : 8,
-                        height: 8,
+                        width: isCurrent ? 24 : 14,
+                        height: 7,
                         borderRadius: 4,
-                        background: isCurrent ? '#818cf8' : isDone ? '#10b981' : '#334155',
+                        background: dotColor,
+                        boxShadow: isCurrent ? '0 0 8px rgba(129, 140, 248, 0.6)' : 'none',
                         transition: 'all 0.3s ease',
                       }}
-                      title={`Question ${stepNum}`}
+                      title={
+                        pastResult
+                          ? `Question ${stepNum}: ${pastResult}`
+                          : isCurrent
+                          ? `Question ${stepNum}: Active`
+                          : `Question ${stepNum}`
+                      }
                     />
                   );
                 })}
               </div>
             </div>
-            <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
-              Category: <strong style={{ color: '#ffffff' }}>{currentQuestion.category}</strong>
+
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+              Category: <strong style={{ color: '#ffffff' }}>{displayCategory}</strong>
             </span>
           </div>
 
-          {/* Prompt */}
+          {/* Question Prompt */}
           <h2
             className="match-prompt-heading"
             style={{
               fontSize: '1.35rem',
               fontWeight: 700,
-              lineHeight: 1.4,
-              marginBottom: '2rem',
+              lineHeight: 1.45,
+              marginBottom: '1.75rem',
               color: '#f8fafc',
             }}
           >
@@ -586,8 +1079,8 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '1rem',
-              marginBottom: '1.5rem',
+              gap: '0.9rem',
+              marginBottom: '1rem',
             }}
           >
             {currentQuestion.options.map((optionText, idx) => {
@@ -597,20 +1090,20 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
               const isWrongChoice = isRevealed && isSelected && !isCorrectAnswer;
 
               // Color styling based on state
-              let btnBg = 'var(--bg-input)';
-              let borderColor = 'var(--border-color)';
-              let textColor = 'var(--text-main)';
+              let btnBg = '#182234';
+              let borderColor = 'rgba(255, 255, 255, 0.08)';
+              let textColor = '#f1f5f9';
 
               if (isSelected && !isRevealed) {
-                btnBg = 'rgba(99, 102, 241, 0.2)';
-                borderColor = 'var(--border-focus)';
+                btnBg = 'rgba(99, 102, 241, 0.25)';
+                borderColor = '#818cf8';
               } else if (isCorrectAnswer) {
-                btnBg = 'rgba(16, 185, 129, 0.2)';
-                borderColor = 'var(--color-success)';
+                btnBg = 'rgba(16, 185, 129, 0.25)';
+                borderColor = '#10b981';
                 textColor = '#6ee7b7';
               } else if (isWrongChoice) {
-                btnBg = 'rgba(239, 68, 68, 0.2)';
-                borderColor = 'var(--color-danger)';
+                btnBg = 'rgba(239, 68, 68, 0.25)';
+                borderColor = '#ef4444';
                 textColor = '#fca5a5';
               }
 
@@ -630,11 +1123,11 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
                     gap: '0.85rem',
                     background: btnBg,
                     border: `2px solid ${borderColor}`,
-                    borderRadius: 'var(--radius-md)',
-                    padding: '1rem 1.25rem',
+                    borderRadius: 14,
+                    padding: '0.95rem 1.25rem',
                     textAlign: 'left',
                     color: textColor,
-                    cursor: isAnswerSubmitted ? 'default' : 'pointer',
+                    cursor: isAnswerSubmitted || phase === 'intermission' ? 'default' : 'pointer',
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -643,44 +1136,66 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
                     style={{
                       width: 28,
                       height: 28,
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--bg-secondary)',
+                      borderRadius: 8,
+                      background: 'rgba(255, 255, 255, 0.06)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '0.85rem',
                       fontWeight: 700,
-                      color: 'var(--text-muted)',
+                      color: isSelected ? '#818cf8' : '#94a3b8',
                       flexShrink: 0,
                     }}
                   >
                     {idx + 1}
                   </span>
 
-                  <span style={{ fontSize: '1rem', fontWeight: 600, flexGrow: 1 }}>{optionText}</span>
+                  <span style={{ fontSize: '0.975rem', fontWeight: 600, flexGrow: 1 }}>{optionText}</span>
+
+                  {/* Lock icon on chosen answer */}
+                  {isSelected && !isRevealed && (
+                    <span title="Answer locked in" style={{ color: '#818cf8' }}>
+                      <Lock size={16} />
+                    </span>
+                  )}
 
                   {/* Outcome Icons */}
-                  {isCorrectAnswer && <CheckCircle2 size={20} color="var(--color-success)" />}
-                  {isWrongChoice && <XCircle size={20} color="var(--color-danger)" />}
+                  {isCorrectAnswer && <CheckCircle2 size={20} color="#10b981" />}
+                  {isWrongChoice && <XCircle size={20} color="#ef4444" />}
                 </button>
               );
             })}
           </div>
 
-          {/* Feedback Banner on Submission / Intermission (NFR-05) */}
+          {/* Waiting for Opponent Status Line */}
+          {isAnswerSubmitted && phase === 'active' && (
+            <p
+              style={{
+                textAlign: 'center',
+                color: '#818cf8',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                margin: '0.75rem 0 0',
+              }}
+            >
+              Answer locked in! Waiting for opponent to answer…
+            </p>
+          )}
+
+          {/* Feedback Banner on Intermission */}
           {phase === 'intermission' && revealedAnswer && (
             <div
               className={`alert ${
                 selectedOption === revealedAnswer.correctOptionIndex ? 'alert-success' : 'alert-danger'
               }`}
               role="alert"
-              style={{ marginTop: '1rem' }}
+              style={{ marginTop: '1rem', borderRadius: 12 }}
             >
               {selectedOption === revealedAnswer.correctOptionIndex ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <CheckCircle2 size={20} />
                   <span>
-                    <strong>Correct!</strong> Speed bonus applied. Next question advancing in 3s...
+                    <strong>Correct!</strong> Speed bonus applied. Next round advancing in 3s...
                   </span>
                 </div>
               ) : (
@@ -688,26 +1203,27 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
                   <XCircle size={20} />
                   <span>
                     <strong>Incorrect.</strong> The correct answer was:{' '}
-                    <strong>{revealedAnswer.correctOptionText}</strong>. Advancing in 3s...
+                    <strong>{revealedAnswer.correctOptionText}</strong>. Next round advancing in 3s...
                   </span>
                 </div>
               )}
             </div>
           )}
 
-          {isAnswerSubmitted && phase === 'active' && (
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              Answer locked in! Waiting for timer or opponent to answer...
-            </p>
-          )}
-
-          {/* Accessibility Hint */}
-          <div style={{ marginTop: '1.5rem', textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
-            Tip: You can use number keys <kbd style={{ background: '#334155', padding: '0.1rem 0.35rem', borderRadius: 4 }}>1</kbd> - <kbd style={{ background: '#334155', padding: '0.1rem 0.35rem', borderRadius: 4 }}>4</kbd> on your keyboard for fast answers!
+          {/* Accessibility Keyboard Hint */}
+          <div
+            style={{
+              marginTop: '1.5rem',
+              textAlign: 'center',
+              color: '#64748b',
+              fontSize: '0.8rem',
+            }}
+          >
+            Tip: Use keys <kbd style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', padding: '0.15rem 0.4rem', borderRadius: 4, color: '#e2e8f0' }}>1</kbd> – <kbd style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', padding: '0.15rem 0.4rem', borderRadius: 4, color: '#e2e8f0' }}>4</kbd> on your keyboard to instantly lock in your answers!
           </div>
         </section>
       ) : (
-        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+        <div className="card" style={{ textAlign: 'center', padding: '3rem', background: '#131b2e' }}>
           <p style={{ color: 'var(--text-muted)' }}>Preparing questions for duel...</p>
         </div>
       )}

@@ -72,6 +72,9 @@ const QuestionSchema = new mongoose.Schema(
   }
 );
 
+// Compound index for high-performance category query-level filtering
+QuestionSchema.index({ category: 1, isActive: 1 });
+
 // Method to sanitize question for clients (excludes correctIndex and explanation)
 QuestionSchema.methods.toClientJSON = function (index = 0, total = 1) {
   return {

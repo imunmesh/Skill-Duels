@@ -1,0 +1,54 @@
+/**
+ * SkillDuels Socket Event Payload Types & Game Error Codes
+ */
+
+export const QUESTIONS_PER_MATCH = 5;
+
+export type MatchErrorCode = 'CATEGORY_HAS_NO_QUESTIONS' | 'CATEGORY_NOT_ENOUGH_QUESTIONS';
+
+export interface MatchErrorPayload {
+  code: MatchErrorCode;
+  message: string;
+  category: string;
+  available?: number;
+  required?: number;
+}
+
+export interface FindOpponentPayload {
+  category: string;
+}
+
+export interface SanitizedQuestion {
+  id: string;
+  questionNumber: number;
+  totalQuestions: number;
+  category: string;
+  prompt: string;
+  options: string[];
+  timeLimit: number;
+  points: number;
+}
+
+export interface MatchOpponent {
+  userId: string;
+  username: string;
+}
+
+export interface MatchFoundPayload {
+  matchId: string;
+  category: string;
+  totalQuestions: number;
+  opponent: MatchOpponent;
+  questions?: SanitizedQuestion[];
+}
+
+export interface CategoryItem {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  questionCount: number;
+  playable: boolean;
+  isActive?: boolean;
+}

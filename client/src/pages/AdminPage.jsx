@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { categoryAPI, questionAPI } from '../services/api';
-import { Plus, Edit2, Trash2, FolderPlus, Search, Filter, Check, X, Shield, RefreshCw } from 'lucide-react';
+import { QUESTIONS_PER_MATCH } from '../constants/rules';
+import { Plus, Edit2, Trash2, FolderPlus, Search, Filter, Check, X, Shield, RefreshCw, AlertTriangle } from 'lucide-react';
 
 export const AdminPage = () => {
   const [activeTab, setActiveTab] = useState('questions'); // 'questions' | 'categories'
@@ -125,11 +126,21 @@ export const AdminPage = () => {
   // Save Question
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
-    if (!questionForm.text.trim()) return showAlert('Question text is required', 'danger');
-    if (questionForm.options.some((opt) => !opt.trim())) {
-      return showAlert('All 4 option fields must be provided', 'danger');
-    }
     if (!questionForm.category) return showAlert('Category is required', 'danger');
+    if (!questionForm.text.trim()) return showAlert('Question text is required', 'danger');
+    if (!Array.isArray(questionForm.options) || questionForm.options.length !== 4) {
+      return showAlert('Exactly 4 options are required', 'danger');
+    }
+    if (questionForm.options.some((opt) => !opt.trim())) {
+      return showAlert('All 4 option fields must be provided and cannot be blank', 'danger');
+    }
+    const normalizedOptions = questionForm.options.map((opt) => opt.trim().toLowerCase());
+    if (new Set(normalizedOptions).size !== 4) {
+      return showAlert('Options must be unique. Duplicate answers are not permitted.', 'danger');
+    }
+    if (questionForm.correctIndex < 0 || questionForm.correctIndex > 3) {
+      return showAlert('Valid correct answer option must be selected', 'danger');
+    }
 
     try {
       if (editingQuestion) {
@@ -141,6 +152,7 @@ export const AdminPage = () => {
       }
       setIsQuestionModalOpen(false);
       loadQuestions();
+      loadCategories();
     } catch (err) {
       showAlert(err.message || 'Failed to save question', 'danger');
     }
@@ -153,6 +165,7 @@ export const AdminPage = () => {
       await questionAPI.delete(id);
       showAlert('Question deleted successfully');
       loadQuestions();
+      loadCategories();
     } catch (err) {
       showAlert(err.message || 'Failed to delete question', 'danger');
     }
@@ -487,9 +500,23 @@ export const AdminPage = () => {
                     </button>
                   </div>
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.35rem' }}>{cat.name}</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
                     {cat.description || 'No description provided.'}
                   </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#cbd5e1' }}>
+                      Questions: {cat.questionCount ?? 0}
+                    </span>
+                    {(cat.questionCount ?? 0) < QUESTIONS_PER_MATCH ? (
+                      <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
+                        Needs {QUESTIONS_PER_MATCH - (cat.questionCount ?? 0)} more questions to be playable
+                      </span>
+                    ) : (
+                      <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                        Playable ({cat.questionCount} questions)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

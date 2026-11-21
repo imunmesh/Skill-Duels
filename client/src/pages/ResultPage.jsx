@@ -1,22 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles } from 'lucide-react';
+import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles, RefreshCw, Home, Shield, Medal, Gem, Crown } from 'lucide-react';
 import { RankUpModal } from '../components/ui/rank-up-modal';
+import { AchievementUnlockedModal } from '../components/ui/achievement-unlocked-modal';
+import { getNextTierProgress, getTierDetails, normalizeTier } from '../constants/tiers';
 
-const TIER_ORDER = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ace', 'Conqueror'];
-
-const getTierFromXP = (xp = 0) => {
-  const n = Number(xp) || 0;
-  if (n >= 3500) return 'Conqueror';
-  if (n >= 2000) return 'Ace';
-  if (n >= 1000) return 'Diamond';
-  if (n >= 600) return 'Platinum';
-  if (n >= 300) return 'Gold';
-  if (n >= 100) return 'Silver';
-  return 'Bronze';
-};
-
-export const ResultPage = ({ matchResult, onPlayAgain }) => {
+export const ResultPage = ({ matchResult, onPlayAgain, onBackToArena }) => {
   const { user, updateProfileXP } = useAuth();
 
   const currentUserId = user?._id ? user._id.toString() : '';
@@ -52,10 +41,18 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
     playerResult?.isRankUp || (oldIndex !== -1 && newIndex !== -1 && newIndex > oldIndex)
   );
 
+  const newBadgesList = playerResult?.newBadges || [];
+
   const [isRankUpOpen, setIsRankUpOpen] = useState(false);
   const [modalOldRank, setModalOldRank] = useState(oldTier);
   const [modalNewRank, setModalNewRank] = useState(newTier);
+  const [isAchievementOpen, setIsAchievementOpen] = useState(false);
   const evaluatedRef = useRef(false);
+  const badgeEvaluatedRef = useRef(false);
+
+  const tierProgress = getNextTierProgress(finalXP);
+  const currentTierDetails = getTierDetails(newTier);
+  const nextTierDetails = tierProgress.nextTier ? getTierDetails(tierProgress.nextTier) : null;
 
   // 1. Sync updated XP and rank to AuthContext once
   useEffect(() => {
@@ -79,8 +76,26 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
       }, 350);
 
       return () => clearTimeout(timer);
+    } else if (newBadgesList.length > 0 && !badgeEvaluatedRef.current) {
+      // If no rank up but badges unlocked, trigger achievement celebration
+      badgeEvaluatedRef.current = true;
+      const timer = setTimeout(() => {
+        setIsAchievementOpen(true);
+      }, 450);
+      return () => clearTimeout(timer);
     }
-  }, [isRankIncreased, oldTier, newTier, matchResult, playerResult]);
+  }, [isRankIncreased, oldTier, newTier, matchResult, playerResult, newBadgesList]);
+
+  // When rank up closes, show achievement modal if any badges were also unlocked
+  const handleRankUpClose = () => {
+    setIsRankUpOpen(false);
+    if (newBadgesList.length > 0 && !badgeEvaluatedRef.current) {
+      badgeEvaluatedRef.current = true;
+      setTimeout(() => {
+        setIsAchievementOpen(true);
+      }, 300);
+    }
+  };
 
   return (
     <main className="container" style={{ maxWidth: 720, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
@@ -204,43 +219,107 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
           </div>
         </div>
 
-        {/* XP Gains & Rank Up Banner */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem', marginBottom: '2.5rem' }}>
+        {/* XP Gains & Tier Progress */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: 480, margin: '0 auto 2.25rem' }}>
+          {/* XP Gained Chip */}
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '0.75rem',
               background: 'rgba(245, 158, 11, 0.12)',
               border: '1px solid rgba(245, 158, 11, 0.3)',
               borderRadius: 'var(--radius-md)',
-              padding: '0.85rem 1.75rem',
-              marginBottom: '2.5rem',
+              padding: '0.85rem 1.5rem',
             }}
           >
             <Zap size={22} color="#f59e0b" />
             <div style={{ textAlign: 'left' }}>
               <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#fcd34d' }}>
-                +{playerResult?.xpAwarded || 15} XP Earned
+                +{xpGained || (isWinner ? 50 : 15)} XP Earned
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Profile Total: {playerResult?.newTotalXP ?? user?.xp ?? 0} XP
+                {isWinner ? 'Match Victory Bonus' : 'Match Completion Bonus'} &bull; Total: {finalXP} XP
               </div>
+            </div>
+          </div>
+
+          {/* Tier Progression Bar */}
+          <div
+            style={{
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 'var(--radius-md)',
+              padding: '1rem 1.25rem',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ fontWeight: 700, color: currentTierDetails.color }}>
+                  {newTier} Tier
+                </span>
+                {isRankIncreased && (
+                  <span
+                    className="badge badge-success animate-pulse"
+                    style={{ fontSize: '0.65rem', padding: '0.15rem 0.45rem', background: '#10b981' }}
+                  >
+                    Tier Up!
+                  </span>
+                )}
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                {tierProgress.nextTier ? `Next: ${tierProgress.nextTier}` : 'Peak Tier Reached'}
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ height: 8, background: '#1e293b', borderRadius: 999, overflow: 'hidden', marginBottom: '0.4rem' }}>
+              <div
+                style={{
+                  width: `${tierProgress.progressPercent}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #6366f1 0%, #10b981 100%)',
+                  borderRadius: 999,
+                  transition: 'width 0.8s ease',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
+              <span>{tierProgress.progressPercent}% to next rank</span>
+              {tierProgress.nextTier ? (
+                <span>{tierProgress.xpNeeded} XP needed</span>
+              ) : (
+                <span style={{ color: '#10b981' }}>Conqueror Supreme</span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Action Button */}
-        <div>
+        {/* Action Buttons: Rematch & Back to Arena */}
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={onPlayAgain}
             className="btn btn-primary"
-            style={{ fontSize: '1.05rem', padding: '0.85rem 2.5rem' }}
-            aria-label="Return to lobby to play another duel"
+            style={{ fontSize: '1rem', padding: '0.75rem 1.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            aria-label="Queue for a rematch or next battle"
           >
-            <span>Play Another Duel</span>
-            <ArrowRight size={18} />
+            <RefreshCw size={17} />
+            <span>Rematch</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onBackToArena || onPlayAgain}
+            className="btn btn-secondary"
+            style={{ fontSize: '1rem', padding: '0.75rem 1.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            aria-label="Return to Arena lobby"
+          >
+            <Home size={17} />
+            <span>Back to Arena</span>
           </button>
         </div>
       </div>
@@ -248,10 +327,17 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
       {/* Rank Up Celebration Modal */}
       <RankUpModal
         isOpen={isRankUpOpen}
-        onClose={() => setIsRankUpOpen(false)}
+        onClose={handleRankUpClose}
         oldRank={modalOldRank}
         newRank={modalNewRank}
         newXP={playerResult?.newTotalXP ?? user?.xp}
+      />
+
+      {/* Achievement Unlocked Celebration Animation Modal */}
+      <AchievementUnlockedModal
+        isOpen={isAchievementOpen}
+        onClose={() => setIsAchievementOpen(false)}
+        badges={newBadgesList}
       />
     </main>
   );

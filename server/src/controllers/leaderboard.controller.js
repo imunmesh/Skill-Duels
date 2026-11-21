@@ -133,11 +133,16 @@ const getUserProgression = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Fetch recent matches (supports both modern array & legacy player1/player2 schemas)
+    // Fetch recent matches with server-side pagination & category filter
     const userIdObj = user._id;
     const userIdStr = user._id.toString();
 
-    const recentMatches = await Match.find({
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const skip = (page - 1) * limit;
+    const categoryParam = req.query.category;
+
+    const matchQuery = {
       $or: [
         { 'players.userId': userIdObj },
         { 'players.userId': userIdStr },
@@ -146,9 +151,22 @@ const getUserProgression = async (req, res, next) => {
         { player1: userIdStr },
         { player2: userIdStr },
       ],
-    })
+    };
+
+    if (categoryParam && categoryParam !== 'all') {
+      if (categoryParam === 'ml' || categoryParam === 'mi') {
+        matchQuery.category = { $in: ['ml', 'mi', 'Machine Learning'] };
+      } else {
+        matchQuery.category = categoryParam;
+      }
+    }
+
+    const totalMatchesCount = await Match.countDocuments(matchQuery);
+
+    const recentMatches = await Match.find(matchQuery)
       .sort({ createdAt: -1 })
-      .limit(20)
+      .skip(skip)
+      .limit(limit)
       .populate('player1', 'username')
       .populate('player2', 'username')
       .lean();
@@ -160,13 +178,72 @@ const getUserProgression = async (req, res, next) => {
     });
     const globalRankPosition = betterRankedCount + 1;
 
-    // Badges summary
+    // Badges summary with real dynamic requirement text and progress
     const earnedBadgeIds = new Set((user.badges || []).map((b) => b.badgeId));
-    const allBadgesWithStatus = Object.values(AVAILABLE_BADGES).map((b) => ({
-      ...b,
-      isUnlocked: earnedBadgeIds.has(b.badgeId),
-      unlockedAt: (user.badges || []).find((ub) => ub.badgeId === b.badgeId)?.awardedAt || null,
-    }));
+    const activeStreakCount = getActiveStreak(user.streak);
+
+    const allBadgesWithStatus = Object.values(AVAILABLE_BADGES).map((b) => {
+      const isUnlocked = earnedBadgeIds.has(b.badgeId);
+      let requirementText = b.requirement || 'Play matches and keep streaks to unlock';
+      let progressPercent = 0;
+
+      if (b.badgeId === 'streak_3') {
+        const cur = Math.min(3, activeStreakCount);
+        requirementText = `3-day streak (${cur}/3)`;
+        progressPercent = Math.min(100, Math.round((cur / 3) * 100));
+      } else if (b.badgeId === 'streak_7') {
+        const cur = Math.min(7, activeStreakCount);
+        requirementText = `7-day streak (${cur}/7)`;
+        progressPercent = Math.min(100, Math.round((cur / 7) * 100));
+      } else if (b.badgeId === 'centurion') {
+        const needed = Math.max(0, 100 - (user.xp || 0));
+        requirementText = isUnlocked ? 'Reached Silver (100+ XP)' : `${needed} XP to go`;
+        progressPercent = Math.min(100, Math.round(((user.xp || 0) / 100) * 100));
+      } else if (b.badgeId === 'gold') {
+        const needed = Math.max(0, 300 - (user.xp || 0));
+        requirementText = isUnlocked ? 'Reached Gold (300+ XP)' : `${needed} XP to go`;
+        progressPercent = Math.min(100, Math.round(((user.xp || 0) / 300) * 100));
+      } else if (b.badgeId === 'veteran') {
+        const needed = Math.max(0, 600 - (user.xp || 0));
+        requirementText = isUnlocked ? 'Reached Platinum (600+ XP)' : `${needed} XP to go`;
+        progressPercent = Math.min(100, Math.round(((user.xp || 0) / 600) * 100));
+      } else if (b.badgeId === 'master') {
+        const needed = Math.max(0, 1000 - (user.xp || 0));
+        requirementText = isUnlocked ? 'Reached Diamond (1,000+ XP)' : `${needed} XP to go`;
+        progressPercent = Math.min(100, Math.round(((user.xp || 0) / 1000) * 100));
+      } else if (b.badgeId === 'ace') {
+        const needed = Math.max(0, 2000 - (user.xp || 0));
+        requirementText = isUnlocked ? 'Reached Ace (2,000+ XP)' : `${needed} XP to go`;
+        progressPercent = Math.min(100, Math.round(((user.xp || 0) / 2000) * 100));
+      } else if (b.badgeId === 'grandmaster') {
+        const needed = Math.max(0, 3500 - (user.xp || 0));
+        requirementText = isUnlocked ? 'Reached Conqueror (3,500+ XP)' : `${needed} XP to go`;
+        progressPercent = Math.min(100, Math.round(((user.xp || 0) / 3500) * 100));
+      } else if (b.badgeId === 'first_duel') {
+        requirementText = isUnlocked ? 'First duel played' : 'Play 1 duel (0/1)';
+        progressPercent = isUnlocked ? 100 : 0;
+      } else if (b.badgeId === 'first_win') {
+        requirementText = isUnlocked ? 'First victory claimed' : 'Win 1 duel (0/1)';
+        progressPercent = isUnlocked ? 100 : 0;
+      } else if (b.badgeId === 'flawless') {
+        requirementText = 'Win a duel without a wrong answer';
+        progressPercent = isUnlocked ? 100 : 0;
+      } else if (b.badgeId === 'speed_demon') {
+        requirementText = 'Answer correctly in < 3s (7s+ left)';
+        progressPercent = isUnlocked ? 100 : 0;
+      } else if (b.badgeId === 'fair_play') {
+        requirementText = 'Finish match with 0 tab warnings';
+        progressPercent = isUnlocked ? 100 : 0;
+      }
+
+      return {
+        ...b,
+        requirement: requirementText,
+        progressPercent,
+        isUnlocked,
+        unlockedAt: (user.badges || []).find((ub) => ub.badgeId === b.badgeId)?.awardedAt || null,
+      };
+    });
 
     // Find next rank tier
     const sortedTiers = [...RANK_TIERS].sort((a, b) => a.minXP - b.minXP);
@@ -177,6 +254,27 @@ const getUserProgression = async (req, res, next) => {
     const rankProgressPercent = nextTier
       ? Math.min(100, Math.round(((user.xp - currentTier.minXP) / (nextTier.minXP - currentTier.minXP)) * 100))
       : 100;
+
+    // Calculate best category from matches
+    const categoryWinCounts = {};
+    recentMatches.forEach((m) => {
+      const isWinner = m.winnerId
+        ? m.winnerId.toString() === user._id.toString()
+        : (m.winner && (m.winner._id || m.winner).toString() === user._id.toString());
+      if (isWinner && m.category) {
+        const catKey = m.category === 'mi' ? 'ml' : m.category;
+        categoryWinCounts[catKey] = (categoryWinCounts[catKey] || 0) + 1;
+      }
+    });
+
+    let bestCategory = 'DSA';
+    let maxWins = -1;
+    for (const [cat, count] of Object.entries(categoryWinCounts)) {
+      if (count > maxWins) {
+        maxWins = count;
+        bestCategory = cat;
+      }
+    }
 
     return res.status(200).json({
       success: true,
@@ -202,6 +300,13 @@ const getUserProgression = async (req, res, next) => {
             user.stats?.matchesPlayed > 0
               ? Math.round((user.stats.matchesWon / user.stats.matchesPlayed) * 100)
               : 0,
+          bestCategory: bestCategory || 'DSA',
+        },
+        pagination: {
+          page,
+          limit,
+          total: totalMatchesCount,
+          totalPages: Math.ceil(totalMatchesCount / limit) || 1,
         },
         streak: {
           current: getActiveStreak(user.streak),
@@ -216,6 +321,14 @@ const getUserProgression = async (req, res, next) => {
             const isWinner = m.winnerId
               ? m.winnerId.toString() === user._id.toString()
               : (playerEntry?.isWinner || false);
+            const isForfeit = m.reason === 'opponent_forfeit' || m.reason === 'tab_switch_forfeit';
+            
+            // Reduced forfeit XP logic check
+            let xp = playerEntry?.xpAwarded;
+            if (xp === undefined || xp === null) {
+              xp = isForfeit ? (isWinner ? 10 : 0) : (isWinner ? 50 : 15);
+            }
+
             return {
               matchId: m.matchId || m._id.toString(),
               category: m.category || 'technical',
@@ -225,7 +338,9 @@ const getUserProgression = async (req, res, next) => {
               isWinner,
               isDraw: m.isDraw || (!m.winnerId && !m.winner),
               reason: m.reason || 'normal',
-              xpAwarded: playerEntry?.xpAwarded || (isWinner ? 50 : 15),
+              isForfeit,
+              xpAwarded: xp,
+              totalQuestions: m.totalQuestions || 5,
               playedAt: m.createdAt,
             };
           } else {
@@ -239,6 +354,7 @@ const getUserProgression = async (req, res, next) => {
             const isWinner = m.winner
               ? (m.winner._id || m.winner).toString() === user._id.toString()
               : false;
+            const isForfeit = m.reason === 'opponent_forfeit' || m.reason === 'tab_switch_forfeit';
             return {
               matchId: m._id.toString(),
               category: m.category || 'technical',
@@ -248,7 +364,9 @@ const getUserProgression = async (req, res, next) => {
               isWinner,
               isDraw: !m.winner,
               reason: m.reason || 'normal',
-              xpAwarded: isWinner ? 50 : 15,
+              isForfeit,
+              xpAwarded: isForfeit ? (isWinner ? 10 : 0) : (isWinner ? 50 : 15),
+              totalQuestions: m.totalQuestions || 5,
               playedAt: m.createdAt,
             };
           }

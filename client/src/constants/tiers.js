@@ -38,3 +38,40 @@ export const getTierDetails = (rankOrXP) => {
 export const calculateLevel = (xp = 0) => {
   return Math.max(1, Math.floor(Math.sqrt((Number(xp) || 0) / 20)) + 1);
 };
+
+export const getNextTierProgress = (xp = 0) => {
+  const currentXP = Number(xp) || 0;
+  const currentTier = normalizeTier(null, currentXP);
+  const currentIndex = TIERS.findIndex((t) => t.name === currentTier);
+  const nextTier = TIERS[currentIndex + 1] || null;
+  const currentMinXP = TIERS[currentIndex]?.minXP || 0;
+
+  if (!nextTier) {
+    return {
+      currentTier,
+      currentTierMinXP: currentMinXP,
+      nextTier: null,
+      nextTierMinXP: currentMinXP,
+      progressPercent: 100,
+      xpInCurrentTier: currentXP - currentMinXP,
+      tierSpan: 0,
+      xpNeeded: 0,
+    };
+  }
+
+  const span = nextTier.minXP - currentMinXP;
+  const gained = Math.max(0, currentXP - currentMinXP);
+  const progressPercent = Math.min(100, Math.max(0, Math.floor((gained / span) * 100)));
+  const xpNeeded = Math.max(0, nextTier.minXP - currentXP);
+
+  return {
+    currentTier,
+    currentTierMinXP: currentMinXP,
+    nextTier: nextTier.name,
+    nextTierMinXP: nextTier.minXP,
+    progressPercent,
+    xpInCurrentTier: gained,
+    tierSpan: span,
+    xpNeeded,
+  };
+};

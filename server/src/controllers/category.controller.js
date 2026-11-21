@@ -1,4 +1,6 @@
 const Category = require('../models/Category');
+const Question = require('../models/Question');
+const { QUESTIONS_PER_MATCH } = require('../config/constants');
 
 /**
  * @desc    Get all categories (FR-08)
@@ -8,12 +10,23 @@ const Category = require('../models/Category');
 const getCategories = async (req, res, next) => {
   try {
     const filter = req.query.all === 'true' && req.user?.role === 'admin' ? {} : { isActive: true };
-    const categories = await Category.find(filter).sort({ name: 1 });
+    const categories = await Category.find(filter).sort({ name: 1 }).lean();
+
+    const categoriesWithCount = await Promise.all(
+      categories.map(async (cat) => {
+        const questionCount = await Question.countDocuments({ category: cat._id, isActive: true });
+        return {
+          ...cat,
+          questionCount,
+          playable: questionCount >= QUESTIONS_PER_MATCH,
+        };
+      })
+    );
 
     return res.status(200).json({
       success: true,
-      count: categories.length,
-      categories,
+      count: categoriesWithCount.length,
+      categories: categoriesWithCount,
     });
   } catch (error) {
     next(error);
