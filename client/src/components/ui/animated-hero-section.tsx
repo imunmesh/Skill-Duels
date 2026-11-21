@@ -13,11 +13,13 @@ export interface AnimatedHeroGameProps {
   style?: React.CSSProperties
   interactive?: boolean
   opacity?: number
+  showPaddles?: boolean
+  showBall?: boolean
 }
 
 const DEFAULT_COLOR = "#FFFFFF"
 const DEFAULT_HIT_COLOR = "#333333"
-const DEFAULT_BACKGROUND_COLOR = "#000000"
+const DEFAULT_BACKGROUND_COLOR = "transparent"
 const DEFAULT_BALL_COLOR = "#FFFFFF"
 const DEFAULT_PADDLE_COLOR = "#FFFFFF"
 const LETTER_SPACING = 1
@@ -318,7 +320,9 @@ export function PromptingIsAllYouNeed({
   paddleColor = DEFAULT_PADDLE_COLOR,
   className = "",
   style = {},
-  opacity = 1,
+  opacity = 0.7,
+  showPaddles = true,
+  showBall = true,
 }: AnimatedHeroGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const pixelsRef = useRef<Pixel[]>([])
@@ -551,33 +555,50 @@ export function PromptingIsAllYouNeed({
         ctx.fillRect(pixel.x, pixel.y, pixel.size, pixel.size)
       })
 
-      ctx.fillStyle = ballColor
-      ctx.beginPath()
-      ctx.arc(ballRef.current.x, ballRef.current.y, ballRef.current.radius, 0, Math.PI * 2)
-      ctx.fill()
+      if (showBall) {
+        ctx.fillStyle = ballColor
+        ctx.beginPath()
+        ctx.arc(ballRef.current.x, ballRef.current.y, ballRef.current.radius, 0, Math.PI * 2)
+        ctx.fill()
+      }
 
-      ctx.fillStyle = paddleColor
-      paddlesRef.current.forEach((paddle) => {
-        ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height)
-      })
+      if (showPaddles) {
+        ctx.fillStyle = paddleColor
+        paddlesRef.current.forEach((paddle) => {
+          ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height)
+        })
+      }
     }
 
     let animId: number
     const gameLoop = () => {
-      updateGame()
+      if (showBall || showPaddles) {
+        updateGame()
+      }
       drawGame()
       animId = requestAnimationFrame(gameLoop)
     }
 
     resizeCanvas()
     window.addEventListener("resize", resizeCanvas)
-    animId = requestAnimationFrame(gameLoop)
+
+    // Respect user's motion preferences (NFR-07)
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+    if (prefersReducedMotion) {
+      drawGame()
+    } else {
+      animId = requestAnimationFrame(gameLoop)
+    }
 
     return () => {
       window.removeEventListener("resize", resizeCanvas)
-      cancelAnimationFrame(animId)
+      if (animId) cancelAnimationFrame(animId)
     }
-  }, [wordsKey, color, hitColor, backgroundColor, ballColor, paddleColor])
+  }, [wordsKey, color, hitColor, backgroundColor, ballColor, paddleColor, showPaddles, showBall])
 
   return (
     <canvas
@@ -585,11 +606,11 @@ export function PromptingIsAllYouNeed({
       className={`fixed top-0 left-0 w-full h-full ${className}`}
       style={{
         pointerEvents: "none",
-        zIndex: 0,
+        zIndex: -1,
         opacity,
         ...style,
       }}
-      aria-label="SkillDuels Arena: Fullscreen Pong game with pixel text"
+      aria-label="SkillDuels Arena: Pixel text background"
     />
   )
 }

@@ -251,8 +251,8 @@ export const App = () => {
       {/* Smooth Cursor across the entire site */}
       <SmoothCursor />
 
-      {/* Background Animated Hero Pong Game Canvas across the entire site (Always Behind) */}
-      {location.pathname !== '/welcome' && (
+      {/* Background Animated Hero Pong Game Canvas ONLY on Landing / Login Page (Always Behind) */}
+      {location.pathname === '/' && !isAuthenticated && (
         <PromptingIsAllYouNeed
           words={HERO_PONG_WORDS}
           color="#FFFFFF"
@@ -261,8 +261,10 @@ export const App = () => {
           ballColor="#FFFFFF"
           paddleColor="#FFFFFF"
           opacity={0.7}
+          showPaddles={true}
+          showBall={true}
           className="fixed inset-0 pointer-events-none"
-          style={{ zIndex: 0, position: 'fixed' }}
+          style={{ zIndex: 0, position: 'fixed', pointerEvents: 'none' }}
         />
       )}
 
@@ -518,7 +520,7 @@ export const App = () => {
                 links: [
                   { label: "Matchmaking Lobby", href: "/arena" },
                   { label: "Global Leaderboard", href: "/leaderboard" },
-                  { label: "Weekly Rankings (FR-07)", href: "/leaderboard?tab=weekly" },
+                  { label: "Weekly Rankings", href: "/leaderboard?tab=weekly" },
                   { label: "Player Profile & Badges", href: "/profile" },
                 ],
               },

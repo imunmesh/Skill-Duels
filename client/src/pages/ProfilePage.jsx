@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { leaderboardAPI, profileAPI } from '../services/api';
 import { getAvatarUrl } from '../utils/avatar';
-import { normalizeTier } from '../components/ui/podium-leaderboard';
+import { normalizeTier, TIERS } from '../constants/tiers';
 import {
   Dialog,
   DialogClose,

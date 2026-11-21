@@ -166,9 +166,9 @@ export const LeaderboardPage = ({ onBackToArena }) => {
               </div>
               <div>
                 <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ACTIVE STREAK</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Flame size={14} color="#ef4444" />
-                  <span>{user?.streak?.current || 0}d</span>
+                  <span>{user?.streak?.current || 0} {(user?.streak?.current || 0) === 1 ? 'Day' : 'Days'}</span>
                 </div>
               </div>
             </div>

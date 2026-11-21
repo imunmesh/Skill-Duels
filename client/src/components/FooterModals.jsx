@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Swords, Zap, Award, ShieldCheck, Flame, BookOpen, FileText, CheckCircle2 } from 'lucide-react';
+import { X, Swords, Zap, Award, ShieldCheck, Flame, BookOpen, FileText, CheckCircle2, Trophy, Shield, Gem, Crown } from 'lucide-react';
 
 export const FooterModals = ({ activeModal, onClose }) => {
   // Close on Escape key press
@@ -36,6 +36,7 @@ export const FooterModals = ({ activeModal, onClose }) => {
       onClick={onClose}
     >
       <div
+        className="modal-dark-scroll"
         style={{
           background: 'linear-gradient(180deg, #131c2a 0%, #0c131d 100%)',
           border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -45,12 +46,29 @@ export const FooterModals = ({ activeModal, onClose }) => {
           width: '100%',
           maxHeight: '85vh',
           overflowY: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#334155 #0c131d',
           padding: '2rem',
           position: 'relative',
           color: '#f8fafc',
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <style>{`
+          .modal-dark-scroll::-webkit-scrollbar {
+            width: 6px;
+          }
+          .modal-dark-scroll::-webkit-scrollbar-track {
+            background: #0c131d;
+          }
+          .modal-dark-scroll::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+          }
+          .modal-dark-scroll::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+          }
+        `}</style>
         <button
           onClick={onClose}
           aria-label="Close dialog"
@@ -128,16 +146,27 @@ export const FooterModals = ({ activeModal, onClose }) => {
                   borderRadius: '10px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <Award size={16} color="#38bdf8" />
                   <span style={{ fontWeight: 600, color: '#f8fafc', fontSize: '0.95rem' }}>Scoring & XP System</span>
                 </div>
-                <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: '#cbd5e1', lineHeight: 1.6 }}>
-                  <li><strong style={{ color: '#ffffff' }}>Base Score:</strong> +100 XP per correct question response.</li>
-                  <li><strong style={{ color: '#ffffff' }}>Speed Multiplier:</strong> Up to +50 bonus XP for instant answers within the first few seconds.</li>
-                  <li><strong style={{ color: '#ffffff' }}>Match Victory:</strong> +50 bonus XP awarded directly to the winner’s global profile.</li>
-                  <li><strong style={{ color: '#ffffff' }}>Daily Streak:</strong> +10 XP cumulative bonus for every consecutive daily duel played.</li>
-                </ul>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                  <div>
+                    <strong style={{ color: '#818cf8' }}>Match Points (In-Game Battle Score):</strong>
+                    <ul style={{ margin: '0.25rem 0 0', paddingLeft: '1.25rem', color: '#cbd5e1' }}>
+                      <li><strong style={{ color: '#ffffff' }}>Base Score:</strong> +100 points per correct answer.</li>
+                      <li><strong style={{ color: '#ffffff' }}>Speed Bonus:</strong> Up to +50 bonus points for rapid responses within the first few seconds (e.g. 425–130 final score).</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#fcd34d' }}>Profile XP (Global Rank & Tier Progression):</strong>
+                    <ul style={{ margin: '0.25rem 0 0', paddingLeft: '1.25rem', color: '#cbd5e1' }}>
+                      <li><strong style={{ color: '#ffffff' }}>Match Victory:</strong> +50 XP awarded directly to the winner’s global profile.</li>
+                      <li><strong style={{ color: '#ffffff' }}>Match Completion:</strong> +15 XP for completing a duel.</li>
+                      <li><strong style={{ color: '#ffffff' }}>Daily Streak:</strong> +10 XP cumulative bonus for every consecutive daily duel played.</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
 
               <div
@@ -150,10 +179,10 @@ export const FooterModals = ({ activeModal, onClose }) => {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                   <ShieldCheck size={16} color="#f87171" />
-                  <span style={{ fontWeight: 600, color: '#fca5a5', fontSize: '0.95rem' }}>Anti-Cheat Engine (FR-05)</span>
+                  <span style={{ fontWeight: 600, color: '#fca5a5', fontSize: '0.95rem' }}>Anti-Cheat Engine</span>
                 </div>
                 <p style={{ fontSize: '0.875rem', color: '#fecaca', margin: 0, lineHeight: 1.5 }}>
-                  Switching tabs, blurring the window, or opening developer tools triggers an automated warning strike.
+                  Switching tabs or leaving the window triggers an automated warning strike.
                   Accumulating <strong>3 strikes</strong> automatically results in a disqualification and forfeit.
                 </p>
               </div>
@@ -189,14 +218,15 @@ export const FooterModals = ({ activeModal, onClose }) => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
               {[
-                { name: 'First Duel', icon: '⚔️', desc: 'Participate in your very first live 1v1 battle match (Bronze Tier).' },
-                { name: 'Speed Demon', icon: '⚡', desc: 'Lock in a correct answer within 3 seconds of the timer start.' },
-                { name: 'Gold Gladiator', icon: '🥇', desc: 'Attain Gold rank with 300+ XP across competitive duels.' },
-                { name: 'Diamond Master', icon: '💎', desc: 'Surpass 1,000+ XP and conquer Diamond tier lobbies.' },
-                { name: 'Ace Champion', icon: '⚡', desc: 'Reach 2,000+ XP and claim the elite Ace rank.' },
-                { name: 'Conqueror Supreme', icon: '👑', desc: 'Ascend to the highest echelon (3,500+ XP) — True Conqueror.' },
-                { name: 'Streak Master', icon: '🔥', desc: 'Maintain an active daily duel streak for 5 consecutive days.' },
-                { name: 'Moderator', icon: '🌟', desc: 'Platform Administrator credential badge for certified moderators.' },
+                { name: 'First Duel', icon: <Swords size={20} color="#cd7f32" />, desc: 'Participate in your very first live 1v1 battle match (Bronze Tier).' },
+                { name: 'Speed Demon', icon: <Zap size={20} color="#fbbf24" />, desc: 'Lock in a correct answer within 3 seconds of the timer start.' },
+                { name: 'Gold Gladiator', icon: <Trophy size={20} color="#f59e0b" />, desc: 'Attain Gold rank with 300+ XP across competitive duels.' },
+                { name: 'Platinum Tactician', icon: <Shield size={20} color="#22d3ee" />, desc: 'Reach 600+ XP and conquer Platinum tier lobbies.' },
+                { name: 'Diamond Master', icon: <Gem size={20} color="#818cf8" />, desc: 'Surpass 1,000+ XP and conquer Diamond tier lobbies.' },
+                { name: 'Ace Champion', icon: <Award size={20} color="#ec4899" />, desc: 'Reach 2,000+ XP and claim the elite Ace rank.' },
+                { name: 'Conqueror Supreme', icon: <Crown size={20} color="#ef4444" />, desc: 'Ascend to the highest echelon (3,500+ XP) — True Conqueror.' },
+                { name: 'Streak Master', icon: <Flame size={20} color="#f97316" />, desc: 'Maintain an active daily duel streak for 5 consecutive days.' },
+                { name: 'Moderator', icon: <ShieldCheck size={20} color="#10b981" />, desc: 'Platform Administrator credential badge for certified moderators.' },
               ].map((badge, idx) => (
                 <div
                   key={idx}
@@ -210,7 +240,19 @@ export const FooterModals = ({ activeModal, onClose }) => {
                     borderRadius: '10px',
                   }}
                 >
-                  <span style={{ fontSize: '1.5rem' }}>{badge.icon}</span>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      display: 'grid',
+                      placeItems: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {badge.icon}
+                  </div>
                   <div>
                     <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#ffffff', margin: 0 }}>
                       {badge.name}

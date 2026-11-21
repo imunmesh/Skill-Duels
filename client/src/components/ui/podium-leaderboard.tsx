@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Crown, ChevronLeft, ChevronRight, Globe, Calendar, Search } from "lucide-react";
+import { Crown, ChevronLeft, ChevronRight, Globe, Calendar, Search, Clock } from "lucide-react";
 import { getAvatarUrl } from "@/utils/avatar";
+import { normalizeTier, calculateLevel, TIERS } from "@/constants/tiers";
+
+export { normalizeTier, calculateLevel };
 
 export interface PodiumPlayer {
   id: string | number;
@@ -35,34 +38,32 @@ export interface PodiumLeaderboardProps {
   className?: string;
 }
 
-// Calculate level from XP
-export const calculateLevel = (xp: number = 0): number => {
-  return Math.max(1, Math.floor(Math.sqrt(xp / 20)) + 1);
+
+export const getResetCountdown = (): { countdown: string; localTime: string } => {
+  const now = new Date();
+  const nextReset = new Date(now);
+  const day = nextReset.getUTCDay(); // 0 is Sunday, 1 is Monday
+  const daysUntilMonday = ((1 - day + 7) % 7) || 7;
+  nextReset.setUTCDate(nextReset.getUTCDate() + daysUntilMonday);
+  nextReset.setUTCHours(0, 0, 0, 0);
+
+  const diffMs = Math.max(0, nextReset.getTime() - now.getTime());
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+  const localTime = nextReset.toLocaleString(undefined, {
+    weekday: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  return {
+    countdown: `Resets in ${diffDays}d ${diffHours}h`,
+    localTime,
+  };
 };
 
-const CANONICAL_TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ace', 'Conqueror'];
-const LEGACY_TIER_MAP: Record<string, string> = {
-  Novice: 'Bronze',
-  Apprentice: 'Silver',
-  Warrior: 'Gold',
-  Master: 'Platinum',
-  Grandmaster: 'Conqueror',
-};
-
-export const normalizeTier = (rank?: string, xp: number = 0): string => {
-  if (rank && CANONICAL_TIERS.includes(rank)) return rank;
-  if (rank && LEGACY_TIER_MAP[rank]) return LEGACY_TIER_MAP[rank];
-  const numXP = Number(xp) || 0;
-  if (numXP >= 3500) return 'Conqueror';
-  if (numXP >= 2000) return 'Ace';
-  if (numXP >= 1000) return 'Diamond';
-  if (numXP >= 600) return 'Platinum';
-  if (numXP >= 300) return 'Gold';
-  if (numXP >= 100) return 'Silver';
-  return 'Bronze';
-};
-
-// Format score into "289.4k" or comma separated
 export const formatScoreK = (num: number = 0): string => {
   if (num >= 1000) {
     return (num / 1000).toFixed(1) + "k";
@@ -107,6 +108,7 @@ export default function PodiumLeaderboard({
   const third = sorted.find((p) => p.position === 3) || sorted[2];
 
   const dateRange = type === "weekly" ? getWeekDateRange() : "All-Time Standings";
+  const resetInfo = getResetCountdown();
 
   const filteredPlayers = sorted.filter((p) => {
     if (!searchQuery.trim()) return true;
@@ -141,6 +143,8 @@ export default function PodiumLeaderboard({
           display: flex;
           align-items: flex-start;
           justifyContent: space-between;
+          flex-wrap: wrap;
+          gap: 16px;
           margin-bottom: 24px;
         }
 
@@ -544,7 +548,14 @@ export default function PodiumLeaderboard({
           <h2 className="plb-title">
             {type === "weekly" ? "Weekly Leaderboard" : "Global Leaderboard"}
           </h2>
-          <p className="plb-subtitle">{dateRange}</p>
+          <p className="plb-subtitle">
+            {dateRange}
+            {type === "weekly" && (
+              <span style={{ marginLeft: 8, color: "#818cf8", fontWeight: 600 }}>
+                &bull; {resetInfo.countdown} ({resetInfo.localTime})
+              </span>
+            )}
+          </p>
         </div>
 
         {onTypeChange && (
@@ -602,7 +613,10 @@ export default function PodiumLeaderboard({
                 {second.displayName || second.username}
               </div>
               <div className="plb-podium-score">
-                {(second.xp || second.weeklyXP || 0).toLocaleString()}
+                <div>{(second.xp || second.weeklyXP || 0).toLocaleString()}</div>
+                <div style={{ fontSize: "0.65rem", color: "#94a3b8", fontWeight: 500, marginTop: 1 }}>
+                  {type === "weekly" ? "Weekly XP" : "Total XP"}
+                </div>
               </div>
             </>
           ) : (
@@ -648,7 +662,10 @@ export default function PodiumLeaderboard({
                 {first.displayName || first.username}
               </div>
               <div className="plb-podium-score" style={{ color: "#fef08a", fontWeight: 700 }}>
-                {(first.xp || first.weeklyXP || 0).toLocaleString()}
+                <div>{(first.xp || first.weeklyXP || 0).toLocaleString()}</div>
+                <div style={{ fontSize: "0.65rem", color: "#fef08a", opacity: 0.85, fontWeight: 500, marginTop: 1 }}>
+                  {type === "weekly" ? "Weekly XP" : "Total XP"}
+                </div>
               </div>
             </>
           ) : (
@@ -690,7 +707,10 @@ export default function PodiumLeaderboard({
                 {third.displayName || third.username}
               </div>
               <div className="plb-podium-score">
-                {(third.xp || third.weeklyXP || 0).toLocaleString()}
+                <div>{(third.xp || third.weeklyXP || 0).toLocaleString()}</div>
+                <div style={{ fontSize: "0.65rem", color: "#94a3b8", fontWeight: 500, marginTop: 1 }}>
+                  {type === "weekly" ? "Weekly XP" : "Total XP"}
+                </div>
               </div>
             </>
           ) : (
@@ -780,13 +800,13 @@ export default function PodiumLeaderboard({
                   </div>
                 )}
 
-                {/* Name & Level/Tier/Win Rate */}
+                {/* Name & Tier/Win Rate */}
                 <div className="plb-row-info">
                   <p className="plb-row-name">
                     {isMe ? "You" : player.displayName || player.username}
                   </p>
                   <p className="plb-row-meta">
-                    Level {level} – {tier}
+                    {tier}
                     {player.matchesWon !== undefined && player.matchesWon > 0 && (
                       <span style={{ color: "#64748b", marginLeft: 6 }}>
                         &bull; {player.matchesWon}W {player.winRate ? `(${player.winRate}%)` : ""}
@@ -800,7 +820,10 @@ export default function PodiumLeaderboard({
                   className="plb-row-score"
                   style={isMe ? { color: "#38bdf8", fontWeight: 800 } : {}}
                 >
-                  {formatScoreK(score)}
+                  <div>{formatScoreK(score)}</div>
+                  <div style={{ fontSize: "0.625rem", color: "#64748b", fontWeight: 500, textTransform: "uppercase" }}>
+                    {type === "weekly" ? "Weekly XP" : "Total XP"}
+                  </div>
                 </div>
               </div>
             );

@@ -1,9 +1,10 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { Swords, LogOut, Zap, Shield, Trophy, User as UserIcon } from 'lucide-react';
+import { Swords, LogOut, Zap, Shield, Trophy, User as UserIcon, Medal, Award, Crown, Gem } from 'lucide-react';
 import { LiquidNavbar } from './ui/liquid-glass-navbar';
 import { getAvatarUrl } from '../utils/avatar';
+import { normalizeTier, getTierDetails } from '../constants/tiers';
 
 const VIEW_MAP = ['arena', 'leaderboard', 'profile'];
 
@@ -22,6 +23,20 @@ export const Navbar = ({ currentView, onNavigate }) => {
 
   const userInitial = (user?.displayName || user?.username || 'U').charAt(0).toUpperCase();
   const activeNavIndex = VIEW_MAP.indexOf(currentView);
+
+  const userTier = normalizeTier(user?.rank, user?.xp || 0);
+  const tierDetails = getTierDetails(user?.xp || 0);
+
+  const renderTierIcon = (iconName, color) => {
+    switch (iconName) {
+      case 'Crown': return <Crown size={13} color={color} />;
+      case 'Award': return <Award size={13} color={color} />;
+      case 'Gem': return <Gem size={13} color={color} />;
+      case 'Shield': return <Shield size={13} color={color} />;
+      case 'Trophy': return <Trophy size={13} color={color} />;
+      default: return <Medal size={13} color={color} />;
+    }
+  };
 
   const navItems = [
     { label: 'Arena', icon: <Swords size={16} />, fx: 'plane' },
@@ -160,12 +175,12 @@ export const Navbar = ({ currentView, onNavigate }) => {
               ) : (
                 /* PLAYER METRICS & CONTROLS */
                 <>
-                  {/* XP Pill */}
+                  {/* Tier & XP Chip */}
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.35rem',
+                      gap: '0.4rem',
                       background: 'var(--bg-input)',
                       border: '1px solid var(--border-color)',
                       padding: '0.35rem 0.65rem',
@@ -173,10 +188,17 @@ export const Navbar = ({ currentView, onNavigate }) => {
                       fontSize: '0.8rem',
                       fontWeight: 700,
                     }}
-                    title={`${user.xp || 0} Total XP`}
+                    title={`${userTier} Tier • ${user.xp || 0} Total XP`}
                   >
-                    <Zap size={13} color="#f59e0b" />
-                    <span style={{ color: '#fcd34d' }}>{user.xp || 0} XP</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: tierDetails.color }}>
+                      {renderTierIcon(tierDetails.icon, tierDetails.color)}
+                      <span style={{ fontWeight: 800 }}>{userTier}</span>
+                    </span>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.2)' }}>|</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#fcd34d' }}>
+                      <Zap size={12} color="#f59e0b" />
+                      <span>{user.xp || 0} XP</span>
+                    </span>
                   </div>
 
                   {/* Player Avatar Chip */}

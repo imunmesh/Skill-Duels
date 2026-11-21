@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AuthSwitch from '../components/ui/auth-switch';
 import { PublicLeaderboard } from '../components/PublicLeaderboard';
-import RainingLetters from '../components/ui/modern-animated-hero-section';
 
 export const AuthPage = ({ onRegisterSuccess, onLoginSuccess }) => {
   const { login, register, error: contextError } = useAuth();
@@ -68,27 +67,6 @@ export const AuthPage = ({ onRegisterSuccess, onLoginSuccess }) => {
         background: 'transparent',
       }}
     >
-      {/* Background Matrix Rain Animation across Auth Landing */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          zIndex: 0,
-          pointerEvents: 'none',
-          opacity: 0.9,
-        }}
-      >
-        <RainingLetters
-          overlay={true}
-          showTitle={false}
-          charCount={260}
-          glowColor="#10b981"
-        />
-      </div>
-
       {/* Foreground Interactive Auth & Standings Content */}
       <div
         style={{

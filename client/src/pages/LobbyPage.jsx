@@ -3,8 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { categoryAPI } from '../services/api';
-import { Swords, Code, Brain, Compass, Globe, Layers, Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import { Swords, Code, Brain, Compass, Globe, Layers, Sparkles, Loader2, AlertCircle, Cpu } from 'lucide-react';
 import InfoCard from '../components/ui/info-card';
+import RainingLetters, { ScrambledTitle } from '../components/ui/modern-animated-hero-section';
 
 const ICON_MAP = {
   Code,
@@ -12,6 +13,7 @@ const ICON_MAP = {
   Brain,
   Globe,
   Layers,
+  Cpu,
 };
 
 const COLOR_MAP = {
@@ -47,10 +49,10 @@ const CANONICAL_CATEGORIES = [
   {
     _id: 'ml',
     slug: 'ml',
-    name: 'Machine learning',
-    displayName: 'Machine learning',
-    description: 'Models',
-    icon: 'Code',
+    name: 'Machine Learning',
+    displayName: 'Machine Learning',
+    description: 'Supervised learning, neural networks, classification, gradient descent, and model evaluation metrics.',
+    icon: 'Cpu',
     color: '#6366f1',
   },
   {
@@ -199,7 +201,30 @@ export const LobbyPage = ({ onMatchFound }) => {
   };
 
   return (
-    <main className="container" style={{ maxWidth: 1040, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
+    <div style={{ position: 'relative', minHeight: '100%' }}>
+      {/* Ambient Matrix Raining Letters Animation inside Arena */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          opacity: 0.35,
+        }}
+      >
+        <RainingLetters
+          overlay={true}
+          showTitle={false}
+          charCount={280}
+          glowColor="#10b981"
+        />
+      </div>
+
+      <main className="container" style={{ position: 'relative', zIndex: 1, maxWidth: 1040, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>
       <style>{`
         .arena-category-grid {
           display: grid;
@@ -258,7 +283,7 @@ export const LobbyPage = ({ onMatchFound }) => {
       <section style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
           <span className="badge badge-primary">
-            <Sparkles size={12} /> Competitive Arena (FR-03)
+            <Sparkles size={12} /> Competitive Arena
           </span>
           <span
             title="Active challengers currently dueling and queueing in the arena"
@@ -269,9 +294,26 @@ export const LobbyPage = ({ onMatchFound }) => {
             LIVE &bull; 14 in Queue
           </span>
         </div>
-        <h1 style={{ fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>
-          Live 1v1 Quiz Battles
-        </h1>
+        <div style={{ minHeight: '3.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ScrambledTitle
+            phrases={[
+              'LIVE 1V1 QUIZ BATTLES',
+              'SKILLDUELS ARENA',
+              'REAL-TIME CODE COMBAT',
+              'PROVE YOUR KNOWLEDGE',
+              'CLIMB TO CONQUEROR',
+              'ENTER THE ARENA'
+            ]}
+            style={{
+              fontSize: '2.25rem',
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+              marginBottom: '0.5rem',
+              color: '#ffffff',
+              textShadow: '0 0 20px rgba(99, 102, 241, 0.5)',
+            }}
+          />
+        </div>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', maxWidth: 560, margin: '0 auto' }}>
           Choose a skill domain, join the matchmaking queue, and duel a peer in real-time with server-authoritative timers!
         </p>
@@ -298,10 +340,10 @@ export const LobbyPage = ({ onMatchFound }) => {
           </div>
 
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-            Matching with an Opponent...
+            Searching… 14 in queue
           </h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-            Category: <strong style={{ color: '#818cf8', textTransform: 'capitalize' }}>{selectedCategory}</strong>
+            Category: <strong style={{ color: '#818cf8', textTransform: 'capitalize' }}>{categories.find((c) => c.slug === selectedCategory)?.name || selectedCategory}</strong>
           </p>
 
           <div
@@ -318,7 +360,7 @@ export const LobbyPage = ({ onMatchFound }) => {
             }}
           >
             <Loader2 size={16} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-            <span>Time in queue: {searchTime}s (Pairing with second player...)</span>
+            <span>Time in queue: {searchTime}s (Pairing with rival...)</span>
           </div>
 
           <div>
@@ -328,7 +370,7 @@ export const LobbyPage = ({ onMatchFound }) => {
               className="btn btn-secondary"
               aria-label="Cancel searching for an opponent"
             >
-              Cancel Matchmaking
+              Cancel
             </button>
           </div>
         </div>
@@ -337,7 +379,7 @@ export const LobbyPage = ({ onMatchFound }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-muted)' }}>
-              1. Choose Skill Domain from Database (FR-08)
+              1. Choose Skill Domain
             </h2>
 
             {loadingCategories ? (
@@ -349,22 +391,39 @@ export const LobbyPage = ({ onMatchFound }) => {
                 No active categories found. Please run seed script or create one in the Admin Panel.
               </div>
             ) : (
-              <div className="arena-category-grid">
+              <div
+                className="arena-category-grid"
+                role="radiogroup"
+                aria-label="Skill domain categories"
+              >
                 {categories.map((cat) => {
                   const Icon = ICON_MAP[cat.icon] || Code;
                   const color = COLOR_MAP[cat.slug] || '#6366f1';
                   const isSelected = selectedCategory === cat.slug;
 
                   return (
-                    <InfoCard
+                    <div
                       key={cat._id || cat.slug}
-                      title={cat.name}
-                      description={cat.description || 'Skill domain questions.'}
-                      icon={<Icon size={22} strokeWidth={2.2} />}
-                      iconColor={color}
-                      selected={isSelected}
+                      role="radio"
+                      aria-checked={isSelected}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          setSelectedCategory(cat.slug);
+                        }
+                      }}
                       onClick={() => setSelectedCategory(cat.slug)}
-                    />
+                      style={{ cursor: 'pointer', outline: 'none' }}
+                    >
+                      <InfoCard
+                        title={cat.name}
+                        description={cat.description || 'Skill domain questions.'}
+                        icon={<Icon size={22} strokeWidth={2.2} />}
+                        iconColor={color}
+                        selected={isSelected}
+                      />
+                    </div>
                   );
                 })}
               </div>
@@ -410,5 +469,6 @@ export const LobbyPage = ({ onMatchFound }) => {
         </div>
       )}
     </main>
+    </div>
   );
 };

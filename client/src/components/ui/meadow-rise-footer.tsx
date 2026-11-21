@@ -1070,7 +1070,7 @@ const MRF_CSS = `
   width: 100%;
   max-width: var(--mrf-max);
   margin: 0 auto;
-  padding: clamp(28px, 4vw, 52px) clamp(20px, 3.4vw, 44px) 26px;
+  padding: clamp(28px, 4vw, 52px) 1.5rem 26px;
   display: flex;
   flex: 1 0 auto;
   flex-direction: column;
@@ -1375,7 +1375,8 @@ const MRF_CSS = `
 .mrf-in .mrf-rule { transform: none; }
 .mrf-bottom p { margin: 0; }
 .mrf-legal { list-style: none; margin: 0; padding: 0; display: flex; gap: 28px; }
-.mrf-legal .mrf-link { font-size: 12px; }
+.mrf-legal .mrf-link { font-size: 13px; color: #cbd5e1; opacity: 1; }
+.mrf-legal .mrf-link:hover { color: #ffffff; }
 .mrf-spacer { flex: 1 0 clamp(48px, 9vw, 120px); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1418,7 +1419,7 @@ export default function MeadowRiseFooter({
   botanicals = true,
   height = "auto",
   heroHeight = "clamp(460px, 60svh, 680px)",
-  maxWidth = "1240px",
+  maxWidth = "1200px",
   fontFamily = SANS_STACK,
   serifFamily = SERIF_STACK,
   className = "",
