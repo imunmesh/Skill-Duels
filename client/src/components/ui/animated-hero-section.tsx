@@ -15,11 +15,11 @@ export interface AnimatedHeroGameProps {
   opacity?: number
 }
 
-const DEFAULT_COLOR = "#818cf8"
-const DEFAULT_HIT_COLOR = "rgba(99, 102, 241, 0.15)"
-const DEFAULT_BACKGROUND_COLOR = "transparent"
-const DEFAULT_BALL_COLOR = "#38bdf8"
-const DEFAULT_PADDLE_COLOR = "#6366f1"
+const DEFAULT_COLOR = "#FFFFFF"
+const DEFAULT_HIT_COLOR = "#333333"
+const DEFAULT_BACKGROUND_COLOR = "#000000"
+const DEFAULT_BALL_COLOR = "#FFFFFF"
+const DEFAULT_PADDLE_COLOR = "#FFFFFF"
 const LETTER_SPACING = 1
 const WORD_SPACING = 3
 
@@ -310,7 +310,7 @@ interface Paddle {
 }
 
 export function PromptingIsAllYouNeed({
-  words = ["SKILLDUELS", "1V1 ARENA"],
+  words = ["SKILLDUELS", "1V1 BATTLE ARENA"],
   color = DEFAULT_COLOR,
   hitColor = DEFAULT_HIT_COLOR,
   backgroundColor = DEFAULT_BACKGROUND_COLOR,
@@ -318,13 +318,15 @@ export function PromptingIsAllYouNeed({
   paddleColor = DEFAULT_PADDLE_COLOR,
   className = "",
   style = {},
-  opacity = 0.22,
+  opacity = 1,
 }: AnimatedHeroGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const pixelsRef = useRef<Pixel[]>([])
   const ballRef = useRef<Ball>({ x: 0, y: 0, dx: 0, dy: 0, radius: 0 })
   const paddlesRef = useRef<Paddle[]>([])
   const scaleRef = useRef(1)
+
+  const wordsKey = words.join("|")
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -343,79 +345,52 @@ export function PromptingIsAllYouNeed({
     const initializeGame = () => {
       const scale = scaleRef.current
       const LARGE_PIXEL_SIZE = 8 * scale
-      const SMALL_PIXEL_SIZE = 4.5 * scale
-      const BALL_SPEED = 5.5 * scale
+      const SMALL_PIXEL_SIZE = 4 * scale
+      const BALL_SPEED = 6 * scale
 
       pixelsRef.current = []
 
-      const calculateWordWidth = (word: string, pixelSize: number) => {
-        return (
-          word.split("").reduce((width, letter) => {
-            const letterWidth = PIXEL_MAP[letter.toUpperCase() as keyof typeof PIXEL_MAP]?.[0]?.length ?? 0
-            return width + letterWidth * pixelSize + LETTER_SPACING * pixelSize
-          }, 0) -
-          LETTER_SPACING * pixelSize
-        )
+      const calculateTextWidth = (text: string, pixelSize: number) => {
+        return text.split(" ").reduce((total, word, index) => {
+          const wordW =
+            word.split("").reduce((w, letter) => {
+              const letterWidth = PIXEL_MAP[letter.toUpperCase() as keyof typeof PIXEL_MAP]?.[0]?.length ?? 0
+              return w + letterWidth * pixelSize + LETTER_SPACING * pixelSize
+            }, 0) - (word.length > 0 ? LETTER_SPACING * pixelSize : 0)
+          return total + wordW + (index > 0 ? WORD_SPACING * pixelSize : 0)
+        }, 0)
       }
 
       const line1 = words[0] || "SKILLDUELS"
-      const line2 = words[1] || "1V1 ARENA"
+      const line2 = words[1] || "1V1 BATTLE ARENA"
 
-      const totalWidthLarge = calculateWordWidth(line1, LARGE_PIXEL_SIZE)
-      const totalWidthSmall = line2.split(" ").reduce((width, word, index) => {
-        return width + calculateWordWidth(word, SMALL_PIXEL_SIZE) + (index > 0 ? WORD_SPACING * SMALL_PIXEL_SIZE : 0)
-      }, 0)
+      const totalWidthLarge = calculateTextWidth(line1, LARGE_PIXEL_SIZE)
+      const totalWidthSmall = calculateTextWidth(line2, SMALL_PIXEL_SIZE)
       const totalWidth = Math.max(totalWidthLarge, totalWidthSmall)
-      const scaleFactor = Math.min(1.2, (canvas.width * 0.75) / (totalWidth || 1))
+      const scaleFactor = (canvas.width * 0.8) / (totalWidth || 1)
 
       const adjustedLargePixelSize = LARGE_PIXEL_SIZE * scaleFactor
       const adjustedSmallPixelSize = SMALL_PIXEL_SIZE * scaleFactor
 
       const largeTextHeight = 5 * adjustedLargePixelSize
       const smallTextHeight = 5 * adjustedSmallPixelSize
-      const spaceBetweenLines = 4 * adjustedLargePixelSize
+      const spaceBetweenLines = 5 * adjustedLargePixelSize
       const totalTextHeight = largeTextHeight + spaceBetweenLines + smallTextHeight
 
       let startY = (canvas.height - totalTextHeight) / 2
 
       const wordsToRender = [line1, line2]
 
-      wordsToRender.forEach((word, wordIndex) => {
+      wordsToRender.forEach((lineText, wordIndex) => {
         const pixelSize = wordIndex === 0 ? adjustedLargePixelSize : adjustedSmallPixelSize
-        const totalW =
-          wordIndex === 0
-            ? calculateWordWidth(word, adjustedLargePixelSize)
-            : line2.split(" ").reduce((width, w, index) => {
-                return (
-                  width +
-                  calculateWordWidth(w, adjustedSmallPixelSize) +
-                  (index > 0 ? WORD_SPACING * adjustedSmallPixelSize : 0)
-                )
-              }, 0)
-
+        const totalW = calculateTextWidth(lineText, pixelSize)
         let startX = (canvas.width - totalW) / 2
 
-        if (wordIndex === 1) {
-          word.split(" ").forEach((subWord) => {
-            subWord.split("").forEach((letter) => {
-              const pixelMap = PIXEL_MAP[letter.toUpperCase() as keyof typeof PIXEL_MAP]
-              if (!pixelMap) return
-
-              for (let i = 0; i < pixelMap.length; i++) {
-                for (let j = 0; j < pixelMap[i].length; j++) {
-                  if (pixelMap[i][j]) {
-                    const x = startX + j * pixelSize
-                    const y = startY + i * pixelSize
-                    pixelsRef.current.push({ x, y, size: pixelSize, hit: false })
-                  }
-                }
-              }
-              startX += (pixelMap[0].length + LETTER_SPACING) * pixelSize
-            })
-            startX += WORD_SPACING * adjustedSmallPixelSize
-          })
-        } else {
-          word.split("").forEach((letter) => {
+        lineText.split(" ").forEach((subWord, subIdx) => {
+          if (subIdx > 0) {
+            startX += WORD_SPACING * pixelSize
+          }
+          subWord.split("").forEach((letter) => {
             const pixelMap = PIXEL_MAP[letter.toUpperCase() as keyof typeof PIXEL_MAP]
             if (!pixelMap) return
 
@@ -430,7 +405,8 @@ export function PromptingIsAllYouNeed({
             }
             startX += (pixelMap[0].length + LETTER_SPACING) * pixelSize
           })
-        }
+        })
+
         startY += wordIndex === 0 ? largeTextHeight + spaceBetweenLines : 0
       })
 
@@ -443,11 +419,11 @@ export function PromptingIsAllYouNeed({
         y: ballStartY,
         dx: -BALL_SPEED,
         dy: BALL_SPEED,
-        radius: Math.max(3, adjustedLargePixelSize / 2),
+        radius: adjustedLargePixelSize / 2,
       }
 
-      const paddleWidth = Math.max(3, adjustedLargePixelSize * 0.9)
-      const paddleLength = 9 * adjustedLargePixelSize
+      const paddleWidth = adjustedLargePixelSize
+      const paddleLength = 10 * adjustedLargePixelSize
 
       paddlesRef.current = [
         {
@@ -601,7 +577,7 @@ export function PromptingIsAllYouNeed({
       window.removeEventListener("resize", resizeCanvas)
       cancelAnimationFrame(animId)
     }
-  }, [words, color, hitColor, backgroundColor, ballColor, paddleColor])
+  }, [wordsKey, color, hitColor, backgroundColor, ballColor, paddleColor])
 
   return (
     <canvas

@@ -62,7 +62,7 @@ export default function AuthSwitch({
 
         .auth-switch {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          background: linear-gradient(135deg, #0b0f19 0%, #1a1635 50%, #0d1527 100%);
+          background: transparent;
           min-height: 100vh;
           width: 100%;
           display: flex;
@@ -78,7 +78,9 @@ export default function AuthSwitch({
           min-height: 520px;
           max-height: calc(100vh - 36px);
           height: 570px;
-          background: #111827;
+          background: rgba(17, 24, 39, 0.88);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
           border: 1px solid rgba(129, 140, 248, 0.25);
           border-radius: 24px;
           box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.15);

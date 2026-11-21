@@ -15,6 +15,10 @@ import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import MetroHero from './components/ui/scroll-locked-video-hero';
 import PromptingIsAllYouNeed from './components/ui/animated-hero-section';
+import RainingLetters from './components/ui/modern-animated-hero-section';
+import { SmoothCursor } from '@/registry/magicui/smooth-cursor';
+
+const HERO_PONG_WORDS = ["SKILLDUELS", "1V1 BATTLE ARENA"];
 
 // Wrapper to pass match ID from route param or saved session state
 const MatchRouteWrapper = ({ activeMatchData, onMatchFinished }) => {
@@ -243,25 +247,30 @@ export const App = () => {
   }
 
   return (
-    <>
-      {/* Background Animated Hero Pong Game Canvas across the entire site */}
+    <div style={{ position: 'relative', minHeight: '100vh', isolation: 'isolate' }}>
+      {/* Smooth Cursor across the entire site */}
+      <SmoothCursor />
+
+      {/* Background Animated Hero Pong Game Canvas across the entire site (Always Behind) */}
       {location.pathname !== '/welcome' && (
         <PromptingIsAllYouNeed
-          words={["SKILLDUELS", "1V1 ARENA"]}
-          color="#818cf8"
-          hitColor="rgba(99, 102, 241, 0.16)"
+          words={HERO_PONG_WORDS}
+          color="#FFFFFF"
+          hitColor="#333333"
           backgroundColor="transparent"
-          ballColor="#38bdf8"
-          paddleColor="#6366f1"
-          opacity={0.16}
+          ballColor="#FFFFFF"
+          paddleColor="#FFFFFF"
+          opacity={0.7}
           className="fixed inset-0 pointer-events-none"
-          style={{ zIndex: 0 }}
+          style={{ zIndex: 0, position: 'fixed' }}
         />
       )}
 
-      <Navbar currentView={currentView} onNavigate={handleNavbarNavigate} />
+      {/* Foreground App Content Wrapper (Always in Front: z-index: 1) */}
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Navbar currentView={currentView} onNavigate={handleNavbarNavigate} />
 
-      <Routes>
+        <Routes>
         {/* Public Root Route */}
         <Route
           path="/"
@@ -432,15 +441,34 @@ export const App = () => {
           element={
             <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 64px)', background: '#000000', overflow: 'hidden' }}>
               <PromptingIsAllYouNeed
-                words={["SKILLDUELS", "1V1 ARENA"]}
-                color="#ffffff"
+                words={["SKILLDUELS", "1V1 BATTLE ARENA"]}
+                color="#FFFFFF"
                 hitColor="#333333"
                 backgroundColor="#000000"
-                ballColor="#ffffff"
-                paddleColor="#ffffff"
+                ballColor="#FFFFFF"
+                paddleColor="#FFFFFF"
                 opacity={1}
                 className="w-full h-full"
                 style={{ position: 'relative', zIndex: 1 }}
+              />
+            </div>
+          }
+        />
+
+        {/* Modern Animated Hero / Matrix Raining Letters Playground Route */}
+        <Route
+          path="/matrix"
+          element={
+            <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+              <RainingLetters
+                phrases={[
+                  'SKILLDUELS ARENA',
+                  '1V1 CODE COMBAT',
+                  'REAL-TIME CS TRIVIA',
+                  'PROVE YOUR KNOWLEDGE',
+                  'CLIMB TO CONQUEROR',
+                  'ENTER THE ARENA'
+                ]}
               />
             </div>
           }
@@ -524,7 +552,8 @@ export const App = () => {
           <MinimalFooter onOpenModal={(modalName) => setActiveModal(modalName)} />
         )
       )}
-    </>
+      </div>
+    </div>
   );
 };
 
