@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles } from 'lucide-react';
 import { RankUpModal } from '../components/ui/rank-up-modal';
@@ -6,12 +6,13 @@ import { RankUpModal } from '../components/ui/rank-up-modal';
 const TIER_ORDER = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ace', 'Conqueror'];
 
 const getTierFromXP = (xp = 0) => {
-  if (xp >= 3500) return 'Conqueror';
-  if (xp >= 2000) return 'Ace';
-  if (xp >= 1000) return 'Diamond';
-  if (xp >= 600) return 'Platinum';
-  if (xp >= 300) return 'Gold';
-  if (xp >= 100) return 'Silver';
+  const n = Number(xp) || 0;
+  if (n >= 3500) return 'Conqueror';
+  if (n >= 2000) return 'Ace';
+  if (n >= 1000) return 'Diamond';
+  if (n >= 600) return 'Platinum';
+  if (n >= 300) return 'Gold';
+  if (n >= 100) return 'Silver';
   return 'Bronze';
 };
 
@@ -26,39 +27,60 @@ export const ResultPage = ({ matchResult, onPlayAgain }) => {
   const isWinner = matchResult?.winnerId?.toString() === currentUserId;
   const isDraw = matchResult?.isDraw;
 
-  const [isRankUpOpen, setIsRankUpOpen] = useState(false);
-  const [modalOldRank, setModalOldRank] = useState('Silver');
-  const [modalNewRank, setModalNewRank] = useState('Gold');
+  // Calculate actual XP before and after this match
+  const finalXP = Number(playerResult?.newTotalXP ?? user?.xp ?? 0);
+  const xpGained = Number(playerResult?.xpAwarded ?? 0);
+  const prevXP = Math.max(0, finalXP - xpGained);
 
-  // Trigger Rank Up animation ONLY when a player's tier actually increases
+  // Normalize old and new tiers to canonical hierarchy
+  const rawOldRank = playerResult?.oldRank;
+  const rawNewRank = playerResult?.newRank;
+
+  const oldTier = rawOldRank && TIER_ORDER.includes(rawOldRank)
+    ? rawOldRank
+    : getTierFromXP(prevXP);
+
+  const newTier = rawNewRank && TIER_ORDER.includes(rawNewRank)
+    ? rawNewRank
+    : getTierFromXP(finalXP);
+
+  const oldIndex = TIER_ORDER.indexOf(oldTier);
+  const newIndex = TIER_ORDER.indexOf(newTier);
+
+  // Rank increased if backend flagged isRankUp OR mathematically promoted to a higher tier index
+  const isRankIncreased = Boolean(
+    playerResult?.isRankUp || (oldIndex !== -1 && newIndex !== -1 && newIndex > oldIndex)
+  );
+
+  const [isRankUpOpen, setIsRankUpOpen] = useState(false);
+  const [modalOldRank, setModalOldRank] = useState(oldTier);
+  const [modalNewRank, setModalNewRank] = useState(newTier);
+  const evaluatedRef = useRef(false);
+
+  // 1. Sync updated XP and rank to AuthContext once
   useEffect(() => {
     if (playerResult?.newTotalXP) {
-      updateProfileXP(playerResult.newTotalXP);
+      updateProfileXP(playerResult.newTotalXP, newTier);
     }
+  }, [playerResult?.newTotalXP, newTier]);
 
-    if (!matchResult || !playerResult) return;
+  // 2. Trigger Rank Up celebration modal when tier actually increases
+  useEffect(() => {
+    if (evaluatedRef.current) return;
+    if (!matchResult && !playerResult) return;
 
-    const prevXP = Math.max(0, (playerResult.newTotalXP ?? user?.xp ?? 0) - (playerResult.xpAwarded || 0));
-    const currentXP = playerResult.newTotalXP ?? user?.xp ?? 0;
-    const oldTier = playerResult.oldRank || getTierFromXP(prevXP);
-    const newTier = playerResult.newRank || getTierFromXP(currentXP);
-    const oldIndex = TIER_ORDER.indexOf(oldTier);
-    const newIndex = TIER_ORDER.indexOf(newTier);
-
-    const hasRankedUp = Boolean(
-      playerResult.isRankUp ||
-      (oldIndex !== -1 && newIndex !== -1 && newIndex > oldIndex)
-    );
-
-    if (hasRankedUp) {
+    if (isRankIncreased) {
+      evaluatedRef.current = true;
       setModalOldRank(oldTier);
       setModalNewRank(newTier);
+
       const timer = setTimeout(() => {
         setIsRankUpOpen(true);
-      }, 400);
+      }, 350);
+
       return () => clearTimeout(timer);
     }
-  }, [playerResult, matchResult, user?.xp, updateProfileXP]);
+  }, [isRankIncreased, oldTier, newTier, matchResult, playerResult]);
 
   return (
     <main className="container" style={{ maxWidth: 720, paddingTop: '5.25rem', paddingBottom: '3.5rem' }}>

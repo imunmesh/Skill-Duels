@@ -234,15 +234,18 @@ const processMatchProgression = async ({
         streakBonus = 10;
       }
 
-      const oldRank = user.rank || calculateRank(user.xp || 0);
+      const oldRank = calculateRank(user.xp || 0);
       const totalXpGain = item.baseXP + streakBonus;
       const newTotalXP = (user.xp || 0) + totalXpGain;
       const newWeeklyXP = (user.weeklyXP || 0) + totalXpGain;
       const newRank = calculateRank(newTotalXP);
+      const oldTierIdx = RANK_TIERS.findIndex((t) => t.name === oldRank);
+      const newTierIdx = RANK_TIERS.findIndex((t) => t.name === newRank);
       const isRankUp =
         oldRank !== newRank &&
-        RANK_TIERS.findIndex((t) => t.name === newRank) <
-          RANK_TIERS.findIndex((t) => t.name === oldRank);
+        oldTierIdx !== -1 &&
+        newTierIdx !== -1 &&
+        newTierIdx < oldTierIdx;
 
       // 2. Evaluate Badges (FR-10)
       const existingBadgeIds = new Set((user.badges || []).map((b) => b.badgeId));

@@ -382,18 +382,22 @@ class MatchManager {
       winnerId,
       isDraw: winnerId === null,
       finalScores: this.getScores(match),
-      players: playersList.map((p) => ({
-        userId: p.userId,
-        username: p.username,
-        score: p.score,
-        isWinner: p.userId === winnerId,
-        xpAwarded: xpAwards[p.userId]?.totalXpGain || xpAwards[p.userId]?.xpAwarded || 0,
-        newTotalXP: xpAwards[p.userId]?.newTotalXP,
-        oldRank: xpAwards[p.userId]?.oldRank,
-        newRank: xpAwards[p.userId]?.rank,
-        isRankUp: Boolean(xpAwards[p.userId]?.isRankUp),
-        newBadges: xpAwards[p.userId]?.newBadges || [],
-      })),
+      players: playersList.map((p) => {
+        const uId = p.userId?.toString();
+        const award = xpAwards[p.userId] || (uId && xpAwards[uId]) || {};
+        return {
+          userId: p.userId,
+          username: p.username,
+          score: p.score,
+          isWinner: p.userId === winnerId,
+          xpAwarded: award.totalXpGain || award.xpAwarded || 0,
+          newTotalXP: award.newTotalXP,
+          oldRank: award.oldRank,
+          newRank: award.rank,
+          isRankUp: Boolean(award.isRankUp),
+          newBadges: award.newBadges || [],
+        };
+      }),
     };
 
     io.to(match.room).emit('match_ended', finalPayload);
