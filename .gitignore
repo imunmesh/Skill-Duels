@@ -27,3 +27,7 @@ Thumbs.db
 dist/
 build/
 server/uploads/
+
+# Local seed scripts
+server/src/scripts/seed-questions-bank.js
+
