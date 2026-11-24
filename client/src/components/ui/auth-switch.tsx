@@ -23,7 +23,6 @@ export default function AuthSwitch({
   const [isSignUp, setIsSignUp] = useState(initialMode === "signup");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [forgotNotice, setForgotNotice] = useState(false);
 
   // Sign In State
   const [loginEmail, setLoginEmail] = useState("");
@@ -545,11 +544,6 @@ export default function AuthSwitch({
               <p className="subtitle">Enter your credentials to enter SkillDuels</p>
 
               {error && !isSignUp ? <div className="auth-error-banner">{error}</div> : null}
-              {forgotNotice && (
-                <div className="forgot-notice-banner">
-                  Password reset link has been dispatched to your email address!
-                </div>
-              )}
 
               <div className="input-field">
                 <span className="icon-slot">
@@ -586,14 +580,6 @@ export default function AuthSwitch({
                   {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-
-              <button
-                type="button"
-                className="forgot-password-link"
-                onClick={() => setForgotNotice(true)}
-              >
-                Forgot password?
-              </button>
 
               <button type="submit" className="btn solid" disabled={loading}>
                 {loading ? "Signing in..." : "Login"}

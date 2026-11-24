@@ -464,3 +464,157 @@ button {
 .achievement-popup-anim {
   animation: achievementPop 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ========================================================
+   3D Isometric Cube Wave Loader
+   ======================================================== */
+:root {
+  --wrapper-bg: #ffffff;
+  --cube-color: rgba(99, 102, 241, 0.08);
+  --highlight-color: #00ff88;
+}
+
+.dark {
+  --wrapper-bg: #000000;
+  --cube-color: rgba(255, 255, 255, 0.04);
+  --highlight-color: #00ff88;
+}
+
+.wrapper-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  perspective: 800px;
+  transform-style: preserve-3d;
+  padding: 0.5rem 0.25rem;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .wrapper-grid {
+    gap: 6px;
+    transform: scale(0.85);
+  }
+}
+
+.cube {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  transform-style: preserve-3d;
+  transform: rotateX(-22deg) rotateY(-32deg);
+  animation: translate-z 2.6s infinite ease-in-out;
+}
+
+.cube:nth-child(1) { animation-delay: 0s; }
+.cube:nth-child(2) { animation-delay: 0.16s; }
+.cube:nth-child(3) { animation-delay: 0.32s; }
+.cube:nth-child(4) { animation-delay: 0.48s; }
+.cube:nth-child(5) { animation-delay: 0.64s; }
+.cube:nth-child(6) { animation-delay: 0.80s; }
+.cube:nth-child(7) { animation-delay: 0.96s; }
+
+.cube .face {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-sizing: border-box;
+  animation: edge-glow 2.6s infinite ease-in-out, face-color 2.6s infinite ease-in-out;
+}
+
+.cube:nth-child(1) .face { animation-delay: 0s; }
+.cube:nth-child(2) .face { animation-delay: 0.16s; }
+.cube:nth-child(3) .face { animation-delay: 0.32s; }
+.cube:nth-child(4) .face { animation-delay: 0.48s; }
+.cube:nth-child(5) .face { animation-delay: 0.64s; }
+.cube:nth-child(6) .face { animation-delay: 0.80s; }
+.cube:nth-child(7) .face { animation-delay: 0.96s; }
+
+.cube .face-front {
+  transform: rotateY(0deg) translateZ(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #fff0;
+  animation: edge-glow 2.6s infinite ease-in-out, face-color 2.6s infinite ease-in-out, face-glow 2.6s infinite ease-in-out;
+}
+
+.cube:nth-child(1) .face-front { animation-delay: 0s; }
+.cube:nth-child(2) .face-front { animation-delay: 0.16s; }
+.cube:nth-child(3) .face-front { animation-delay: 0.32s; }
+.cube:nth-child(4) .face-front { animation-delay: 0.48s; }
+.cube:nth-child(5) .face-front { animation-delay: 0.64s; }
+.cube:nth-child(6) .face-front { animation-delay: 0.80s; }
+.cube:nth-child(7) .face-front { animation-delay: 0.96s; }
+
+.cube .face-back {
+  transform: rotateY(180deg) translateZ(14px);
+}
+
+.cube .face-right {
+  transform: rotateY(90deg) translateZ(14px);
+}
+
+.cube .face-left {
+  transform: rotateY(-90deg) translateZ(14px);
+}
+
+.cube .face-top {
+  transform: rotateX(90deg) translateZ(14px);
+}
+
+.cube .face-bottom {
+  transform: rotateX(-90deg) translateZ(14px);
+}
+
+@keyframes translate-z {
+  0%,
+  40%,
+  100% {
+    transform: rotateX(-22deg) rotateY(-32deg) translateZ(-2px);
+  }
+  30% {
+    transform: rotateX(-22deg) rotateY(-32deg) translateZ(13px) translateY(-3px);
+  }
+}
+
+@keyframes face-color {
+  0%,
+  50%,
+  100% {
+    background-color: var(--cube-color);
+  }
+  10% {
+    background-color: var(--highlight-color);
+  }
+}
+
+@keyframes face-glow {
+  0%,
+  50%,
+  100% {
+    color: #fff0;
+    filter: none;
+  }
+  30% {
+    color: #fff;
+    filter: drop-shadow(0 0 10px var(--highlight-color));
+  }
+}
+
+@keyframes edge-glow {
+  0%,
+  40%,
+  100% {
+    box-shadow: inset 0 0 2px 1px rgba(0, 0, 0, 0.25),
+      inset 0 0 12px 1px rgba(255, 255, 255, 0.05);
+  }
+  30% {
+    box-shadow: 0 0 12px 1px var(--highlight-color), inset 0 0 8px 1px var(--highlight-color);
+  }
+}

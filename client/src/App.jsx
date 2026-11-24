@@ -14,6 +14,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import TetrisLoading from '@/components/ui/tetris-loader';
+import { CubeLoader } from '@/components/ui/loader';
 import PromptingIsAllYouNeed from './components/ui/animated-hero-section';
 import RainingLetters from './components/ui/modern-animated-hero-section';
 import { SmoothCursor } from '@/registry/magicui/smooth-cursor';
@@ -252,7 +253,7 @@ export const App = () => {
           padding: '2rem',
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
           <h1
             style={{
               fontSize: '1.75rem',
@@ -269,40 +270,21 @@ export const App = () => {
           </p>
         </div>
 
-        <TetrisLoading
-          size="md"
-          speed="fast"
-          showLoadingText={true}
-          loadingText="ENTERING THE ARENA..."
-          autoCompleteDurationMs={2600}
-          onComplete={handleFinishLoginIntro}
-        />
+        {/* Retro Tetris Game Animation */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <TetrisLoading
+            size="sm"
+            speed="fast"
+            showLoadingText={false}
+            autoCompleteDurationMs={2800}
+            onComplete={handleFinishLoginIntro}
+          />
+        </div>
 
-        <button
-          type="button"
-          onClick={handleFinishLoginIntro}
-          style={{
-            marginTop: '2.5rem',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            color: '#94a3b8',
-            padding: '6px 18px',
-            borderRadius: '9999px',
-            fontSize: '0.8rem',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#ffffff';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#94a3b8';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-          }}
-        >
-          Skip Intro →
-        </button>
+        {/* 3D Isometric Glowing Green Cube Loader (placed where skip intro was) */}
+        <div>
+          <CubeLoader />
+        </div>
       </div>
     );
   }
@@ -380,7 +362,7 @@ export const App = () => {
                 padding: '2rem',
               }}
             >
-              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
                 <h1
                   style={{
                     fontSize: '1.75rem',
@@ -397,40 +379,21 @@ export const App = () => {
                 </p>
               </div>
 
-              <TetrisLoading
-                size="md"
-                speed="fast"
-                showLoadingText={true}
-                loadingText="ENTERING THE ARENA..."
-                autoCompleteDurationMs={2600}
-                onComplete={handleFinishLoginIntro}
-              />
+              {/* Retro Tetris Game Animation */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <TetrisLoading
+                  size="sm"
+                  speed="fast"
+                  showLoadingText={false}
+                  autoCompleteDurationMs={2800}
+                  onComplete={handleFinishLoginIntro}
+                />
+              </div>
 
-              <button
-                type="button"
-                onClick={handleFinishLoginIntro}
-                style={{
-                  marginTop: '2.5rem',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#94a3b8',
-                  padding: '6px 18px',
-                  borderRadius: '9999px',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#ffffff';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#94a3b8';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-                }}
-              >
-                Skip Intro →
-              </button>
+              {/* 3D Isometric Glowing Green Cube Loader (placed where skip intro was) */}
+              <div>
+                <CubeLoader />
+              </div>
             </div>
           }
         />
