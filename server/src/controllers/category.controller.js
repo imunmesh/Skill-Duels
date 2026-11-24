@@ -9,7 +9,15 @@ const { QUESTIONS_PER_MATCH } = require('../config/constants');
  */
 const getCategories = async (req, res, next) => {
   try {
-    const filter = req.query.all === 'true' && req.user?.role === 'admin' ? {} : { isActive: true };
+    const isAdmin = req.query.all === 'true' && req.user?.role === 'admin';
+    const filter = isAdmin ? {} : { isActive: true };
+
+    // Exclude automated test categories from public queries
+    if (!isAdmin) {
+      filter.slug = { $not: /^(rematch-test|test-cat|volatile-test)/ };
+      filter.name = { $not: /(test|rematch pool)/i };
+    }
+
     const categories = await Category.find(filter).sort({ name: 1 }).lean();
 
     const categoriesWithCount = await Promise.all(

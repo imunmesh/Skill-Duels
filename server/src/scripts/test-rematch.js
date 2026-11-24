@@ -158,18 +158,22 @@ async function runAllTests() {
     await mongoose.connect(process.env.MONGODB_URI || uri);
   }
 
-  // Setup test categories
-  const testCatA = await Category.findOneAndUpdate(
-    { slug: 'rematch-test-a' },
-    { name: 'Rematch Pool Alpha', slug: 'rematch-test-a', description: 'Ten questions test pool' },
-    { upsert: true, new: true }
-  );
+  let testCatA;
+  let testCatThree;
 
-  const testCatThree = await Category.findOneAndUpdate(
-    { slug: 'rematch-test-three' },
-    { name: 'Rematch Pool Three', slug: 'rematch-test-three', description: 'Three questions under quota' },
-    { upsert: true, new: true }
-  );
+  try {
+    // Setup test categories
+    testCatA = await Category.findOneAndUpdate(
+      { slug: 'rematch-test-a' },
+      { name: 'Rematch Pool Alpha', slug: 'rematch-test-a', description: 'Ten questions test pool' },
+      { upsert: true, new: true }
+    );
+
+    testCatThree = await Category.findOneAndUpdate(
+      { slug: 'rematch-test-three' },
+      { name: 'Rematch Pool Three', slug: 'rematch-test-three', description: 'Three questions under quota' },
+      { upsert: true, new: true }
+    );
 
   // Clean up any old test questions
   await Question.deleteMany({
@@ -209,7 +213,7 @@ async function runAllTests() {
   userB.id = userB._id.toString();
 
   // Helper to establish finished match state
-  function setupFinishedMatch(matchId, category, reason = 'normal', qList = questionsA.slice(0, 5)) {
+  const setupFinishedMatch = (matchId, category, reason = 'normal', qList = questionsA.slice(0, 5)) => {
     matchManager.matches.clear();
     matchManager.userToMatch.clear();
     matchManager.socketToMatch.clear();
@@ -229,7 +233,7 @@ async function runAllTests() {
     };
     matchManager.matches.set(matchId, state);
     return state;
-  }
+  };
 
   // -------------------------------------------------------------------------
   // Test 1: A requests, B accepts: new match starts, same category, both receive matchFound
@@ -518,17 +522,21 @@ async function runAllTests() {
       );
     });
   });
-
-  // Cleanup test categories and questions
-  await Question.deleteMany({ category: { $in: [testCatA._id, testCatThree._id] } });
-  await Category.deleteMany({ slug: { $in: ['rematch-test-a', 'rematch-test-three'] } });
-  await Match.deleteMany({ matchId: { $regex: '^cap_match_' } });
+  } finally {
+    // Cleanup test categories and questions unconditionally
+    if (testCatA || testCatThree) {
+      const catIds = [testCatA?._id, testCatThree?._id].filter(Boolean);
+      await Question.deleteMany({ category: { $in: catIds } });
+      await Category.deleteMany({ slug: { $in: ['rematch-test-a', 'rematch-test-three'] } });
+    }
+    await Match.deleteMany({ matchId: { $regex: '^cap_match_' } });
+    await mongoose.disconnect();
+  }
 
   console.log('\n----------------------------------------------------------------');
   console.log(`Results: ${passedTests} / ${totalTests} acceptance tests passed (${Math.round((passedTests / totalTests) * 100)}%)`);
   console.log('----------------------------------------------------------------\n');
 
-  await mongoose.disconnect();
   process.exit(passedTests === totalTests ? 0 : 1);
 }
 

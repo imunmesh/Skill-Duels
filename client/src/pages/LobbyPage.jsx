@@ -137,6 +137,15 @@ export const LobbyPage = ({ onMatchFound }) => {
             : canonical;
         });
         res.categories.forEach((c) => {
+          // Never display test categories or temporary pools on the public frontend
+          if (
+            c.slug?.startsWith('test-') ||
+            c.slug?.startsWith('rematch-test') ||
+            /test|rematch pool/i.test(c.name || '')
+          ) {
+            return;
+          }
+
           if (!catList.find((item) => item.slug === c.slug)) {
             catList.push({
               ...c,

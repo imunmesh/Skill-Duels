@@ -50,30 +50,36 @@ async function runAllTests() {
     await mongoose.connect(process.env.MONGODB_URI || uri);
   }
 
-  // Setup test categories
-  const testCatZero = await Category.findOneAndUpdate(
-    { slug: 'test-cat-zero' },
-    { name: 'Test Empty Category', slug: 'test-cat-zero', description: 'Zero questions test' },
-    { upsert: true, new: true }
-  );
+  let testCatZero;
+  let testCatThree;
+  let testCatA;
+  let testCatB;
 
-  const testCatThree = await Category.findOneAndUpdate(
-    { slug: 'test-cat-three' },
-    { name: 'Test Three Category', slug: 'test-cat-three', description: 'Three questions test' },
-    { upsert: true, new: true }
-  );
+  try {
+    // Setup test categories
+    testCatZero = await Category.findOneAndUpdate(
+      { slug: 'test-cat-zero' },
+      { name: 'Test Empty Category', slug: 'test-cat-zero', description: 'Zero questions test' },
+      { upsert: true, new: true }
+    );
 
-  const testCatA = await Category.findOneAndUpdate(
-    { slug: 'test-cat-a' },
-    { name: 'Category Alpha', slug: 'test-cat-a', description: 'Ten questions test' },
-    { upsert: true, new: true }
-  );
+    testCatThree = await Category.findOneAndUpdate(
+      { slug: 'test-cat-three' },
+      { name: 'Test Three Category', slug: 'test-cat-three', description: 'Three questions test' },
+      { upsert: true, new: true }
+    );
 
-  const testCatB = await Category.findOneAndUpdate(
-    { slug: 'test-cat-b' },
-    { name: 'Category Beta', slug: 'test-cat-b', description: 'Zero questions test' },
-    { upsert: true, new: true }
-  );
+    testCatA = await Category.findOneAndUpdate(
+      { slug: 'test-cat-a' },
+      { name: 'Category Alpha', slug: 'test-cat-a', description: 'Ten questions test' },
+      { upsert: true, new: true }
+    );
+
+    testCatB = await Category.findOneAndUpdate(
+      { slug: 'test-cat-b' },
+      { name: 'Category Beta', slug: 'test-cat-b', description: 'Zero questions test' },
+      { upsert: true, new: true }
+    );
 
   // Clean up any old test questions
   await Question.deleteMany({
@@ -329,16 +335,20 @@ async function runAllTests() {
     // Clean up created match from memory
     matchManager.cleanupMatch(matchState.id);
   });
+  } finally {
+    // Clean up all test categories and questions unconditionally
+    if (testCatZero || testCatThree || testCatA || testCatB) {
+      const catIds = [testCatZero?._id, testCatThree?._id, testCatA?._id, testCatB?._id].filter(Boolean);
+      await Question.deleteMany({
+        category: { $in: catIds },
+      });
+      await Category.deleteMany({
+        _id: { $in: catIds },
+      });
+    }
 
-  // Clean up all test categories and questions
-  await Question.deleteMany({
-    category: { $in: [testCatZero._id, testCatThree._id, testCatA._id, testCatB._id] },
-  });
-  await Category.deleteMany({
-    _id: { $in: [testCatZero._id, testCatThree._id, testCatA._id, testCatB._id] },
-  });
-
-  await mongoose.disconnect();
+    await mongoose.disconnect();
+  }
 
   console.log('\n----------------------------------------------------------------');
   console.log(`Results: ${passedTests} / ${totalTests} acceptance tests passed (100%)`);
