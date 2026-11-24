@@ -254,13 +254,13 @@ const ServiceCard = React.forwardRef<HTMLDivElement, ServiceCardProps>(
         <motion.img
           src={imgSrc}
           alt={imgAlt}
-          className="absolute -right-6 -bottom-6 w-36 h-36 object-cover rounded-2xl opacity-40 group-hover:opacity-65 shadow-2xl transition-opacity pointer-events-none border border-white/5"
+          className="absolute -right-3 -bottom-3 w-40 h-40 object-cover rounded-2xl opacity-80 group-hover:opacity-100 shadow-2xl transition-all duration-300 pointer-events-none border border-white/10"
           variants={imageAnimation}
           loading="lazy"
         />
 
         {/* Subtle Radial Gradient to preserve text contrast */}
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/60 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-transparent/30 pointer-events-none" />
       </motion.div>
     );
   }

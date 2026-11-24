@@ -28,33 +28,33 @@ const COLOR_MAP = {
 
 const CATEGORY_IMAGE_MAP = {
   dsa: {
-    imgSrc: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&auto=format&fit=crop&q=80',
-    imgAlt: 'Data Structures and Algorithms network graph',
+    imgSrc: '/images/categories/dsa.jpg',
+    imgAlt: 'Data Structures and Algorithms - Binary Tree and Big-O Complexity',
     variant: 'purple',
   },
   logical: {
-    imgSrc: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80',
-    imgAlt: 'Logical reasoning abstract mind',
+    imgSrc: '/images/categories/logical.jpg',
+    imgAlt: 'Logical Reasoning - Glowing Puzzle Lightbulb and Rubiks Cube',
     variant: 'amber',
   },
   ml: {
-    imgSrc: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&auto=format&fit=crop&q=80',
-    imgAlt: 'Machine Learning AI neural chip',
+    imgSrc: '/images/categories/ml.jpg',
+    imgAlt: 'Machine Learning - AI Cybernetic Robot and Neural Network',
     variant: 'blue',
   },
   aptitude: {
-    imgSrc: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&auto=format&fit=crop&q=80',
-    imgAlt: 'Quantitative aptitude 3D shapes',
+    imgSrc: '/images/categories/aptitude.jpg',
+    imgAlt: 'Quantitative Aptitude - Financial Calculator and Growth Analytics',
     variant: 'emerald',
   },
   technical: {
-    imgSrc: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&auto=format&fit=crop&q=80',
-    imgAlt: 'Technical CS system matrix code',
+    imgSrc: '/images/categories/technical.jpg',
+    imgAlt: 'Technical & CS - Laptop, OS, DBMS, COA and Gears',
     variant: 'cyan',
   },
   'web-dev': {
-    imgSrc: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=400&auto=format&fit=crop&q=80',
-    imgAlt: 'Modern web development screens',
+    imgSrc: '/images/categories/web-dev.jpg',
+    imgAlt: 'Web Development - Laptop with HTML, CSS, JS, React',
     variant: 'default',
   },
 };
