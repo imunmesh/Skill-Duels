@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles, RefreshCw, Home, Shield, Medal, Gem, Crown } from 'lucide-react';
 import { RankUpModal } from '../components/ui/rank-up-modal';
 import { AchievementUnlockedModal } from '../components/ui/achievement-unlocked-modal';
-import { getNextTierProgress, getTierDetails, normalizeTier } from '../constants/tiers';
+import { getNextTierProgress, getTierDetails, normalizeTier, TIER_ORDER, getTierFromXP } from '../constants/tiers';
 
 export const ResultPage = ({ matchResult, onPlayAgain, onBackToArena }) => {
   const { user, updateProfileXP } = useAuth();
@@ -25,13 +25,8 @@ export const ResultPage = ({ matchResult, onPlayAgain, onBackToArena }) => {
   const rawOldRank = playerResult?.oldRank;
   const rawNewRank = playerResult?.newRank;
 
-  const oldTier = rawOldRank && TIER_ORDER.includes(rawOldRank)
-    ? rawOldRank
-    : getTierFromXP(prevXP);
-
-  const newTier = rawNewRank && TIER_ORDER.includes(rawNewRank)
-    ? rawNewRank
-    : getTierFromXP(finalXP);
+  const oldTier = normalizeTier(rawOldRank, prevXP);
+  const newTier = normalizeTier(rawNewRank, finalXP);
 
   const oldIndex = TIER_ORDER.indexOf(oldTier);
   const newIndex = TIER_ORDER.indexOf(newTier);

@@ -9,6 +9,7 @@ export const TIERS = [
 ];
 
 export const CANONICAL_TIERS = TIERS.map((t) => t.name);
+export const TIER_ORDER = CANONICAL_TIERS;
 
 const LEGACY_TIER_MAP = {
   Novice: 'Bronze',
@@ -29,6 +30,8 @@ export const normalizeTier = (rank, xp = 0) => {
   }
   return 'Bronze';
 };
+
+export const getTierFromXP = (xp = 0) => normalizeTier(null, xp);
 
 export const getTierDetails = (rankOrXP) => {
   const tierName = typeof rankOrXP === 'number' ? normalizeTier(null, rankOrXP) : normalizeTier(rankOrXP, 0);
