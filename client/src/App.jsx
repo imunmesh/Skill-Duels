@@ -418,6 +418,13 @@ export const App = () => {
                   setFinalMatchResult(null);
                   navigate('/arena');
                 }}
+                onMatchFound={(matchData) => {
+                  setActiveMatchData(matchData);
+                  localStorage.setItem('skillduels_active_match', JSON.stringify(matchData));
+                  localStorage.removeItem('skillduels_final_result');
+                  setFinalMatchResult(null);
+                  navigate(`/match/${matchData.matchId}`);
+                }}
               />
             )
           }

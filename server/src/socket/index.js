@@ -3,6 +3,11 @@ const { authenticateSocket } = require('../middleware/auth.middleware');
 const matchmaking = require('./matchmaking');
 const matchManager = require('./matchManager');
 const { checkCategoryPlayable, QUESTIONS_PER_MATCH, ERROR_CODES } = require('./questionService');
+const {
+  registerRematchHandlers,
+  handleSocketDisconnectRematch,
+  cancelPendingRematchesForUser,
+} = require('./rematch');
 
 /**
  * Configure and initialize Socket.IO server (FR-03, FR-04, FR-05)
@@ -29,6 +34,12 @@ const initSocketServer = (httpServer) => {
 
     console.log(`[Socket.IO] Client connected: ${username} (Socket: ${socket.id}, User: ${userId})`);
 
+    // Each socket joins a room named after its userId on connect (so targeted events can be emitted to user)
+    socket.join(userId);
+
+    // Register Rematch event handlers (rematchRequest, rematchDecline)
+    registerRematchHandlers(io, socket);
+
     // Check if user has an ongoing match they can reconnect to
     const activeMatchId = matchManager.userToMatch.get(userId);
     if (activeMatchId) {
@@ -43,6 +54,9 @@ const initSocketServer = (httpServer) => {
      * Payload: { category?: 'technical' | 'aptitude' | 'logical' | 'dsa' | 'ml' | 'web-dev' }
      */
     const handleFindOpponent = async ({ category = 'technical' } = {}) => {
+      // Cancel any pending rematch involving this user since they are queueing for another battle
+      cancelPendingRematchesForUser(io, userId, 'left');
+
       // 1. Double-click prevention: do not enqueue if already queued or actively matching
       if (matchmaking.isQueued(socket.id) || matchmaking.isQueued(userId)) {
         console.warn(`[Matchmaking] Duplicate queue attempt prevented for ${username}`);
@@ -154,6 +168,7 @@ const initSocketServer = (httpServer) => {
       console.log(`[Socket.IO] Client disconnected: ${username} (${socket.id}) - Reason: ${reason}`);
       matchmaking.dequeue(socket.id);
       matchManager.handleDisconnect(io, socket.id);
+      handleSocketDisconnectRematch(io, socket, userId);
     });
   });
 

@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles, RefreshCw, Home, Shield, Medal, Gem, Crown } from 'lucide-react';
 import { RankUpModal } from '../components/ui/rank-up-modal';
 import { AchievementUnlockedModal } from '../components/ui/achievement-unlocked-modal';
 import { getNextTierProgress, getTierDetails, normalizeTier, TIER_ORDER, getTierFromXP } from '../constants/tiers';
+import { RematchButton } from '../components/RematchButton';
 
-export const ResultPage = ({ matchResult, onPlayAgain, onBackToArena }) => {
+export const ResultPage = ({ matchResult, onPlayAgain, onBackToArena, onMatchFound }) => {
+  const navigate = useNavigate();
+  const { socket } = useSocket();
   const { user, updateProfileXP } = useAuth();
 
   const currentUserId = user?._id ? user._id.toString() : '';
@@ -15,6 +20,7 @@ export const ResultPage = ({ matchResult, onPlayAgain, onBackToArena }) => {
 
   const isWinner = matchResult?.winnerId?.toString() === currentUserId;
   const isDraw = matchResult?.isDraw;
+  const isForfeit = matchResult?.reason === 'opponent_forfeit' || matchResult?.reason === 'tab_switch_forfeit';
 
   // Calculate actual XP before and after this match
   const finalXP = Number(playerResult?.newTotalXP ?? user?.xp ?? 0);
@@ -294,21 +300,31 @@ export const ResultPage = ({ matchResult, onPlayAgain, onBackToArena }) => {
         </div>
 
         {/* Action Buttons: Rematch & Back to Arena */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={onPlayAgain}
-            className="btn btn-primary"
-            style={{ fontSize: '1rem', padding: '0.75rem 1.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-            aria-label="Queue for a rematch or next battle"
-          >
-            <RefreshCw size={17} />
-            <span>Rematch</span>
-          </button>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+          <RematchButton
+            matchId={matchResult?.matchId}
+            opponentName={opponentResult?.username || 'Opponent'}
+            isForfeit={isForfeit}
+            onMatchFound={(matchData) => {
+              if (onMatchFound) {
+                onMatchFound(matchData);
+              } else {
+                localStorage.setItem('skillduels_active_match', JSON.stringify(matchData));
+                localStorage.removeItem('skillduels_final_result');
+                navigate(`/match/${matchData.matchId}`);
+              }
+            }}
+          />
 
           <button
             type="button"
-            onClick={onBackToArena || onPlayAgain}
+            onClick={() => {
+              if (socket && matchResult?.matchId) {
+                socket.emit('rematchDecline', { matchId: matchResult.matchId });
+              }
+              if (onBackToArena) onBackToArena();
+              else if (onPlayAgain) onPlayAgain();
+            }}
             className="btn btn-secondary"
             style={{ fontSize: '1rem', padding: '0.75rem 1.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
             aria-label="Return to Arena lobby"
