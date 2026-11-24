@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles, RefreshCw, Home, Shield, Medal, Gem, Crown } from 'lucide-react';
+import { Trophy, Swords, Zap, ArrowRight, Award, ShieldAlert, Sparkles, RefreshCw, Home, Shield, Medal, Gem, Crown, Flame } from 'lucide-react';
 import { RankUpModal } from '../components/ui/rank-up-modal';
 import { AchievementUnlockedModal } from '../components/ui/achievement-unlocked-modal';
 import { getNextTierProgress, getTierDetails, normalizeTier, TIER_ORDER, getTierFromXP } from '../constants/tiers';
@@ -222,6 +222,47 @@ export const ResultPage = ({ matchResult, onPlayAgain, onBackToArena, onMatchFou
 
         {/* XP Gains & Tier Progress */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: 480, margin: '0 auto 2.25rem' }}>
+          <style>{`
+            @keyframes flamePop {
+              0%, 100% { transform: scale(1) translateY(0); }
+              50% { transform: scale(1.22) translateY(-3px); }
+            }
+            @media (prefers-reduced-motion: no-preference) {
+              .streak-flame-anim {
+                animation: flamePop 1.4s ease-in-out infinite;
+              }
+            }
+          `}</style>
+
+          {/* Daily Streak Extended Celebration Banner */}
+          {playerResult?.streakExtended && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.75rem',
+                background: 'rgba(249, 115, 22, 0.15)',
+                border: '1px solid rgba(249, 115, 22, 0.45)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.75rem 1.25rem',
+                boxShadow: '0 0 25px rgba(249, 115, 22, 0.25)',
+              }}
+              role="status"
+              aria-live="polite"
+            >
+              <Flame size={24} color="#f97316" className="streak-flame-anim" />
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: 800, fontSize: '1rem', color: '#fed7aa' }}>
+                  Streak Extended: {playerResult.currentStreak || 1} {(playerResult.currentStreak || 1) === 1 ? 'day' : 'days'}!
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#fdba74' }}>
+                  +{playerResult.streakBonus || 0} XP Daily Streak Bonus Awarded
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* XP Gained Chip */}
           <div
             style={{

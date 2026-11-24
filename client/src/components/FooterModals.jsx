@@ -163,7 +163,7 @@ export const FooterModals = ({ activeModal, onClose }) => {
                     <ul style={{ margin: '0.25rem 0 0', paddingLeft: '1.25rem', color: '#cbd5e1' }}>
                       <li><strong style={{ color: '#ffffff' }}>Match Victory:</strong> +50 XP awarded directly to the winner’s global profile.</li>
                       <li><strong style={{ color: '#ffffff' }}>Match Completion:</strong> +15 XP for completing a duel.</li>
-                      <li><strong style={{ color: '#ffffff' }}>Daily Streak:</strong> +10 XP cumulative bonus for every consecutive daily duel played.</li>
+                      <li><strong style={{ color: '#ffffff' }}>Daily Streak Bonus:</strong> Awarded once per calendar day (Asia/Kolkata boundary) when you extend your streak by completing a match normally. Bonus XP = min(Streak Days &times; 10, 50 XP max) (e.g. Day 2: +20 XP, Day 3: +30 XP, capped at +50 XP for 5+ days).</li>
                     </ul>
                   </div>
                 </div>

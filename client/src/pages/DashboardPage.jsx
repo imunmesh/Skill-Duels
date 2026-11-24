@@ -181,8 +181,8 @@ export const DashboardPage = () => {
             {/* Streak */}
             <div
               style={{
-                background: 'rgba(239, 68, 68, 0.12)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                background: (p.streak?.current || 0) > 0 ? 'rgba(249, 115, 22, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(249, 115, 22, 0.35)',
                 padding: '0.6rem 1rem',
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
@@ -190,10 +190,10 @@ export const DashboardPage = () => {
                 gap: '0.6rem',
               }}
             >
-              <Flame size={24} color="#ef4444" />
+              <Flame size={24} color="#f97316" />
               <div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fca5a5' }}>
-                  {p.streak?.current || 0} Day{p.streak?.current === 1 ? '' : 's'}
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fdba74' }}>
+                  {p.streak?.current || 0} {(p.streak?.current === 1) ? 'day' : 'days'}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ACTIVE STREAK</div>
               </div>
@@ -459,9 +459,9 @@ export const DashboardPage = () => {
 
                           {/* Streak */}
                           <td style={{ padding: '0.85rem 1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#fca5a5' }}>
-                              <Flame size={14} />
-                              <span>{row.streak || 0}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#fdba74' }}>
+                              <Flame size={14} color="#f97316" />
+                              <span>{row.streak || 0} {(row.streak === 1) ? 'day' : 'days'}</span>
                             </div>
                           </td>
 

@@ -839,10 +839,17 @@ export const ProfilePage = ({ onBackToArena }) => {
               <Flame size={24} color={(p.streak?.current || 0) > 0 ? '#f97316' : '#94a3b8'} />
               <div>
                 <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (p.streak?.current || 0) > 0 ? '#fdba74' : '#cbd5e1' }}>
-                  {(p.streak?.current || 0) > 0 ? `${p.streak.current} Day${p.streak.current === 1 ? '' : 's'}` : '0 Days'}
+                  {p.streak?.current || 0} {(p.streak?.current === 1) ? 'day' : 'days'}
                 </div>
-                <div style={{ fontSize: '0.7rem', color: (p.streak?.current || 0) > 0 ? '#fed7aa' : '#f59e0b', fontWeight: 600 }}>
-                  {(p.streak?.current || 0) > 0 ? 'Play today to keep it' : 'Play today to start streak'}
+                <div style={{ fontSize: '0.72rem', color: (p.streak?.current || 0) > 0 ? '#fed7aa' : '#f59e0b', fontWeight: 600 }}>
+                  {p.streak?.atRisk
+                    ? `Play today to keep your ${p.streak.current} day streak (${p.streak.hoursRemaining || 12}h left)`
+                    : (p.streak?.current || 0) > 0
+                    ? 'Played today! Streak safe'
+                    : 'Play today to start streak'}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.15rem' }}>
+                  Best: {p.streak?.longest ?? p.streak?.highest ?? 0} {(p.streak?.longest ?? p.streak?.highest ?? 0) === 1 ? 'day' : 'days'}
                 </div>
               </div>
             </div>

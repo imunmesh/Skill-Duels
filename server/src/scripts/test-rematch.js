@@ -529,6 +529,7 @@ async function runAllTests() {
   console.log('----------------------------------------------------------------\n');
 
   await mongoose.disconnect();
+  process.exit(passedTests === totalTests ? 0 : 1);
 }
 
 runAllTests().catch((err) => {

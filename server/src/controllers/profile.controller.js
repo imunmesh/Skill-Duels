@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const User = require('../models/User');
 const { SKILLS_CATALOG, ALL_SKILLS } = require('../constants/skills');
-const { getActiveStreak } = require('../services/progressionService');
+const { getDisplayStreak } = require('../services/streak');
 
 /**
  * Validate actual binary content type via magic bytes
@@ -73,7 +73,15 @@ const getMyProfile = async (req, res, next) => {
     }
     const userObj = user.toObject();
     if (userObj.streak) {
-      userObj.streak.current = getActiveStreak(userObj.streak);
+      const display = getDisplayStreak(userObj.streak);
+      userObj.streak = {
+        current: display.current,
+        longest: userObj.streak.longest ?? userObj.streak.highest ?? 0,
+        highest: userObj.streak.longest ?? userObj.streak.highest ?? 0,
+        atRisk: display.atRisk,
+        hoursRemaining: display.hoursRemaining,
+        lastPlayedDay: userObj.streak.lastPlayedDay || null,
+      };
     }
     return res.status(200).json({ success: true, user: userObj });
   } catch (error) {

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Match = require('../models/Match');
 const { RANK_TIERS, AVAILABLE_BADGES, getActiveStreak, calculateRank } = require('../services/progressionService');
+const { getDisplayStreak } = require('../services/streak');
 
 const VALID_TIERS = new Set(['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ace', 'Conqueror']);
 const resolvePlayerTier = (player) => {
@@ -48,7 +49,12 @@ const getGlobalLeaderboard = async (req, res, next) => {
         player.stats?.matchesPlayed > 0
           ? Math.round((player.stats.matchesWon / player.stats.matchesPlayed) * 100)
           : 0,
-      streak: getActiveStreak(player.streak),
+      streak: getDisplayStreak(player.streak).current,
+      streakDetails: {
+        current: getDisplayStreak(player.streak).current,
+        longest: player.streak?.longest ?? player.streak?.highest ?? 0,
+        atRisk: getDisplayStreak(player.streak).atRisk,
+      },
     }));
 
     return res.status(200).json({
@@ -103,7 +109,12 @@ const getWeeklyLeaderboard = async (req, res, next) => {
         player.stats?.matchesPlayed > 0
           ? Math.round((player.stats.matchesWon / player.stats.matchesPlayed) * 100)
           : 0,
-      streak: getActiveStreak(player.streak),
+      streak: getDisplayStreak(player.streak).current,
+      streakDetails: {
+        current: getDisplayStreak(player.streak).current,
+        longest: player.streak?.longest ?? player.streak?.highest ?? 0,
+        atRisk: getDisplayStreak(player.streak).atRisk,
+      },
     }));
 
     return res.status(200).json({
@@ -309,9 +320,12 @@ const getUserProgression = async (req, res, next) => {
           totalPages: Math.ceil(totalMatchesCount / limit) || 1,
         },
         streak: {
-          current: getActiveStreak(user.streak),
-          highest: user.streak?.highest || 0,
-          lastMatchDate: user.streak?.lastMatchDate || null,
+          current: getDisplayStreak(user.streak).current,
+          longest: user.streak?.longest ?? user.streak?.highest ?? 0,
+          highest: user.streak?.longest ?? user.streak?.highest ?? 0,
+          atRisk: getDisplayStreak(user.streak).atRisk,
+          hoursRemaining: getDisplayStreak(user.streak).hoursRemaining,
+          lastPlayedDay: user.streak?.lastPlayedDay || null,
         },
         badges: allBadgesWithStatus,
         recentMatches: recentMatches.map((m) => {

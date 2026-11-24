@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Match = require('../models/Match');
+const { onMatchCompleted, getDisplayStreak } = require('./streak');
 
 // Rank Thresholds (FR-02, AC-04)
 const RANK_TIERS = [
@@ -144,10 +145,16 @@ const getCalendarDayDifference = (dateA, dateB) => {
  * If 2 or more calendar days have passed, active streak is 0.
  */
 const getActiveStreak = (streakObj, referenceDate = new Date()) => {
-  if (!streakObj || !streakObj.current || !streakObj.lastMatchDate) return 0;
-  const diffDays = getCalendarDayDifference(streakObj.lastMatchDate, referenceDate);
-  if (diffDays === null || diffDays > 1) return 0;
-  return streakObj.current;
+  if (!streakObj || !streakObj.current) return 0;
+  if (streakObj.lastPlayedDay) {
+    return getDisplayStreak(streakObj, referenceDate).current;
+  }
+  if (streakObj.lastMatchDate) {
+    const diffDays = getCalendarDayDifference(streakObj.lastMatchDate, referenceDate);
+    if (diffDays === null || diffDays > 1) return 0;
+    return streakObj.current;
+  }
+  return getDisplayStreak(streakObj, referenceDate).current;
 };
 
 /**
@@ -245,35 +252,17 @@ const processMatchProgression = async ({
       if (!user) continue;
 
       const now = new Date();
-      let streakBonus = 0;
 
-      // 1. Calculate Participation Streak (FR-10) using calendar day differences
-      const lastDate = user.streak?.lastMatchDate ? new Date(user.streak.lastMatchDate) : null;
-      let currentStreak = user.streak?.current || 0;
-
-      if (!lastDate) {
-        currentStreak = 1;
-      } else {
-        const diffDays = getCalendarDayDifference(lastDate, now);
-
-        if (diffDays === 0) {
-          // Same calendar day, streak stays intact
-          if (currentStreak === 0) currentStreak = 1;
-        } else if (diffDays === 1) {
-          // Consecutive calendar day, increment streak
-          currentStreak += 1;
-        } else if (diffDays > 1) {
-          // Missed one or more days, reset streak to 1
-          currentStreak = 1;
-        }
-      }
-
-      // Bonus points for consistent participation streaks (FR-10)
-      if (currentStreak >= 7) {
-        streakBonus = 25;
-      } else if (currentStreak >= 3) {
-        streakBonus = 10;
-      }
+      // 1. Process daily streak and capped bonus XP (FR-10, computed on calendar days in STREAK_TZ)
+      const streakResult = await onMatchCompleted(
+        item.p.userId,
+        { matchId, endReason: reason === 'normal' ? 'completed' : reason, reason },
+        now
+      );
+      const streakBonus = streakResult.bonusXP || 0;
+      const currentStreak = streakResult.streak?.current || user.streak?.current || 0;
+      const longestStreak = streakResult.streak?.longest || user.streak?.longest || user.streak?.highest || currentStreak;
+      const streakExtended = Boolean(streakResult.extended);
 
       const oldRank = calculateRank(user.xp || 0);
       const totalXpGain = item.baseXP + streakBonus;
@@ -341,7 +330,9 @@ const processMatchProgression = async ({
 
       user.streak = {
         current: currentStreak,
-        highest: Math.max(user.streak?.highest || 0, currentStreak),
+        longest: longestStreak,
+        highest: longestStreak,
+        lastPlayedDay: streakResult.streak?.lastPlayedDay || user.streak?.lastPlayedDay || null,
         lastMatchDate: now,
       };
 
@@ -354,12 +345,14 @@ const processMatchProgression = async ({
       results[item.p.userId] = {
         xpAwarded: item.baseXP,
         streakBonus,
+        streakExtended,
         totalXpGain,
         newTotalXP,
         oldRank,
         rank: newRank,
         isRankUp,
         currentStreak,
+        longestStreak,
         newBadges: newlyEarnedBadges,
       };
     }

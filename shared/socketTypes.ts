@@ -5,6 +5,7 @@
 export const QUESTIONS_PER_MATCH = 5;
 export const REMATCH_TTL_MS = 15000;
 export const MAX_REMATCHES_PER_PAIR_PER_DAY = 5;
+export const STREAK_TZ = 'Asia/Kolkata';
 
 export type MatchErrorCode = 'CATEGORY_HAS_NO_QUESTIONS' | 'CATEGORY_NOT_ENOUGH_QUESTIONS';
 

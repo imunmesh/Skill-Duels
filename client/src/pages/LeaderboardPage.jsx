@@ -166,9 +166,9 @@ export const LeaderboardPage = ({ onBackToArena }) => {
               </div>
               <div>
                 <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ACTIVE STREAK</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Flame size={14} color="#ef4444" />
-                  <span>{user?.streak?.current || 0} {(user?.streak?.current || 0) === 1 ? 'Day' : 'Days'}</span>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fdba74', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Flame size={14} color="#f97316" />
+                  <span>{user?.streak?.current || 0} {(user?.streak?.current || 0) === 1 ? 'day' : 'days'}</span>
                 </div>
               </div>
             </div>
@@ -184,7 +184,7 @@ export const LeaderboardPage = ({ onBackToArena }) => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
-              <Flame size={18} color="#ef4444" />
+              <Flame size={18} color="#f97316" />
               <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#ffffff' }}>Top Streaks</h3>
             </div>
 
@@ -221,11 +221,11 @@ export const LeaderboardPage = ({ onBackToArena }) => {
                         gap: '3px',
                         fontSize: '0.8rem',
                         fontWeight: 700,
-                        color: '#fca5a5',
+                        color: '#fdba74',
                       }}
                     >
-                      <Flame size={13} color="#ef4444" />
-                      {tp.streak} Days
+                      <Flame size={13} color="#f97316" />
+                      {tp.streak} {tp.streak === 1 ? 'day' : 'days'}
                     </span>
                   </div>
                 ))}

@@ -111,7 +111,9 @@ const UserSchema = new mongoose.Schema(
     },
     streak: {
       current: { type: Number, default: 0 },
+      longest: { type: Number, default: 0 },
       highest: { type: Number, default: 0 },
+      lastPlayedDay: { type: String, default: null },
       lastMatchDate: { type: Date, default: null },
     },
     badges: {
@@ -127,6 +129,7 @@ const UserSchema = new mongoose.Schema(
 // Compound index for role-filtered leaderboard queries (NFR-02)
 UserSchema.index({ role: 1, xp: -1 });
 UserSchema.index({ role: 1, weeklyXP: -1 });
+UserSchema.index({ 'streak.current': -1 });
 
 /**
  * Compare plain text password against stored bcrypt passwordHash
