@@ -268,7 +268,7 @@ const seedDatabase = async () => {
           correctIndex: q.correctIndex,
           difficulty: q.difficulty || 'medium',
           category: catId,
-          timeLimit: 10,
+          timeLimit: 20,
           points: 100,
         });
       }

@@ -47,7 +47,7 @@ const QuestionSchema = new mongoose.Schema(
     },
     timeLimit: {
       type: Number,
-      default: 10, // seconds
+      default: 20, // seconds
       min: [5, 'Time limit must be at least 5 seconds'],
       max: [60, 'Time limit cannot exceed 60 seconds'],
     },

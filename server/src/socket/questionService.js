@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Category = require('../models/Category');
 const Question = require('../models/Question');
-const { QUESTIONS_PER_MATCH, ERROR_CODES } = require('../config/constants');
+const { QUESTIONS_PER_MATCH, DEFAULT_QUESTION_TIME_LIMIT, ERROR_CODES } = require('../config/constants');
 
 /**
  * Custom Typed Error for Question Validation
@@ -206,7 +206,7 @@ const getPlayableQuestions = async (categoryIdentifier) => {
     prompt: q.text,
     options: q.options,
     correctOptionIndex: q.correctIndex,
-    timeLimit: q.timeLimit || 10,
+    timeLimit: q.timeLimit || DEFAULT_QUESTION_TIME_LIMIT,
     points: q.points || 100,
   }));
 };
@@ -247,6 +247,7 @@ const hasQuestionsForCategory = async (category) => {
 
 module.exports = {
   QUESTIONS_PER_MATCH,
+  DEFAULT_QUESTION_TIME_LIMIT,
   ERROR_CODES,
   CategoryQuestionError,
   getPlayableQuestions,

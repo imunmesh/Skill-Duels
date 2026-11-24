@@ -1,4 +1,10 @@
-const { getPlayableQuestions, sanitizeQuestionForClient, QUESTIONS_PER_MATCH, ERROR_CODES } = require('./questionService');
+const {
+  getPlayableQuestions,
+  sanitizeQuestionForClient,
+  QUESTIONS_PER_MATCH,
+  DEFAULT_QUESTION_TIME_LIMIT,
+  ERROR_CODES,
+} = require('./questionService');
 const { awardMatchXP } = require('./xpService');
 const matchmaking = require('./matchmaking');
 
@@ -156,7 +162,7 @@ class MatchManager {
     }
 
     match.state = 'in_progress';
-    match.remainingSeconds = currentQuestion.timeLimit || 10;
+    match.remainingSeconds = currentQuestion.timeLimit || DEFAULT_QUESTION_TIME_LIMIT;
 
     const sanitized = sanitizeQuestionForClient(
       currentQuestion,
@@ -217,7 +223,7 @@ class MatchManager {
     // Scoring formula: Base points + speed bonus based on remaining seconds
     let pointsEarned = 0;
     if (isCorrect) {
-      const speedBonus = Math.max(0, match.remainingSeconds * 5);
+      const speedBonus = Math.max(0, Math.round(match.remainingSeconds * 2.5));
       pointsEarned = (currentQuestion.points || 100) + speedBonus;
       playerEntry.score += pointsEarned;
     }

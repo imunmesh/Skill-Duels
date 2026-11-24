@@ -38,7 +38,7 @@ const battleReducer = (state, action) => {
       return {
         ...state,
         currentQuestion: action.payload,
-        remainingSeconds: action.payload.remainingSeconds || action.payload.timeLimit || 10,
+        remainingSeconds: action.payload.remainingSeconds || action.payload.timeLimit || 20,
         selectedOption: null,
         isAnswerSubmitted: false,
         revealedAnswer: null,
@@ -142,7 +142,7 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
 
   const [state, dispatch] = useReducer(battleReducer, {
     currentQuestion: null,
-    remainingSeconds: 10,
+    remainingSeconds: 20,
     playerScore: 0,
     opponentScore: 0,
     selectedOption: null,
@@ -418,9 +418,9 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
 
   // Timer urgency color & pulse
   const timerColor =
-    remainingSeconds <= 4 ? '#ef4444' : remainingSeconds <= 9 ? '#f59e0b' : '#818cf8';
+    remainingSeconds <= 5 ? '#ef4444' : remainingSeconds <= 10 ? '#f59e0b' : '#818cf8';
 
-  const timeLimitTotal = currentQuestion?.timeLimit || 10;
+  const timeLimitTotal = currentQuestion?.timeLimit || 20;
   const timerRadius = 40;
   const timerCircumference = 2 * Math.PI * timerRadius; // ~251.33
   const timerProgress = Math.max(0, remainingSeconds) / timeLimitTotal;
@@ -788,7 +788,7 @@ export const MatchPage = ({ initialMatchData, onMatchFinished }) => {
               width: 96,
               height: 96,
               margin: '0 auto',
-              animation: remainingSeconds <= 3 && phase === 'active' ? 'timerPulse 0.6s infinite ease-in-out' : 'none',
+              animation: remainingSeconds <= 5 && phase === 'active' ? 'timerPulse 0.6s infinite ease-in-out' : 'none',
             }}
           >
             <svg width="96" height="96" viewBox="0 0 96 96" style={{ transform: 'rotate(-90deg)' }}>

@@ -59,7 +59,7 @@ const AVAILABLE_BADGES = {
     name: 'Lightning Reflexes',
     description: 'Answered correctly in under 3 seconds with max speed bonus',
     icon: 'zap',
-    requirement: 'Answer correctly with 7s+ remaining',
+    requirement: 'Answer correctly with 17s+ remaining',
   },
   streak_3: {
     badgeId: 'streak_3',
@@ -307,8 +307,8 @@ const processMatchProgression = async ({
         checkAndAwardBadge('flawless');
       }
 
-      // Check lightning reflexes (answered a question correctly in >= 7 seconds remaining)
-      if (answersList.some((a) => a.isCorrect && a.answeredAtSecondsRemaining >= 7)) {
+      // Check lightning reflexes (answered a question correctly in under 3 seconds -> >= 17s remaining)
+      if (answersList.some((a) => a.isCorrect && a.answeredAtSecondsRemaining >= 17)) {
         checkAndAwardBadge('speed_demon');
       }
 

@@ -1,4 +1,5 @@
 export const QUESTIONS_PER_MATCH = 5;
+export const DEFAULT_QUESTION_TIME_LIMIT = 20;
 export const REMATCH_TTL_MS = 15000;
 export const MAX_REMATCHES_PER_PAIR_PER_DAY = 5;
 export const STREAK_TZ = 'Asia/Kolkata';

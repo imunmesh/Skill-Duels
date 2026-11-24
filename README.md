@@ -120,9 +120,9 @@ npm run lint
 - As soon as a peer queues in the same category, the server pairs them into a synchronized room and dispatches the exact same question set to both screens.
 
 ### 2. Server-Authoritative Timer & Speed Bonus (FR-04, FR-05, AC-02, AC-03)
-- Each question runs on a strict server countdown timer (typically 10 seconds).
+- Each question runs on a strict server countdown timer (20 seconds).
 - **Scoring Formula:**
-  $$\text{Points} = \text{Base Points (100)} + (\text{Remaining Seconds} \times 5)$$
+  $$\text{Points} = \text{Base Points (100)} + (\text{Remaining Seconds} \times 2.5)$$
 - When a player answers, their score updates live on their opponent's HUD without a page refresh!
 - When the countdown reaches zero, the round automatically closes, reveals the correct option in green, and enters a 3-second intermission before advancing.
 

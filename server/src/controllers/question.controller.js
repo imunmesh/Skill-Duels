@@ -152,7 +152,7 @@ const createQuestion = async (req, res, next) => {
       correctIndex: cIdx,
       category: catDoc._id,
       difficulty: difficulty || 'medium',
-      timeLimit: parseInt(timeLimit, 10) || 10,
+      timeLimit: parseInt(timeLimit, 10) || 20,
       points: parseInt(points, 10) || 100,
       explanation: explanation?.trim() || '',
       isActive: true,

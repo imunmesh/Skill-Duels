@@ -223,39 +223,6 @@ export default function AuthSwitch({
           color: #f1f5f9;
         }
 
-        .auth-switch .forgot-password-link {
-          align-self: flex-end;
-          max-width: 380px;
-          margin: 4px 4px 8px auto;
-          font-size: 0.8rem;
-          color: #818cf8;
-          text-decoration: none;
-          cursor: pointer;
-          background: none;
-          border: none;
-          padding: 0;
-          font-weight: 500;
-          transition: color 0.2s ease;
-        }
-
-        .auth-switch .forgot-password-link:hover {
-          color: #a5b4fc;
-          text-decoration: underline;
-        }
-
-        .auth-switch .forgot-notice-banner {
-          background: rgba(99, 102, 241, 0.15);
-          border: 1px solid #818cf8;
-          color: #c7d2fe;
-          font-size: 0.8rem;
-          padding: 6px 10px;
-          border-radius: 8px;
-          margin-bottom: 8px;
-          text-align: center;
-          max-width: 380px;
-          width: 100%;
-        }
-
         .auth-switch .btn {
           width: 160px;
           background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);

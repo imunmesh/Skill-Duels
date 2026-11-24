@@ -70,7 +70,7 @@ export const AdminPage = () => {
     correctIndex: 0,
     category: '',
     difficulty: 'medium',
-    timeLimit: 10,
+    timeLimit: 20,
     points: 100,
     explanation: '',
   });
@@ -148,7 +148,7 @@ export const AdminPage = () => {
         correctIndex: q.correctIndex,
         category: q.category?._id || q.category,
         difficulty: q.difficulty || 'medium',
-        timeLimit: q.timeLimit || 10,
+        timeLimit: q.timeLimit || 20,
         points: q.points || 100,
         explanation: q.explanation || '',
       });
@@ -160,7 +160,7 @@ export const AdminPage = () => {
         correctIndex: 0,
         category: filterCategory || categories[0]?._id || '',
         difficulty: 'medium',
-        timeLimit: 10,
+        timeLimit: 20,
         points: 100,
         explanation: '',
       });
@@ -177,7 +177,7 @@ export const AdminPage = () => {
       correctIndex: q.correctIndex,
       category: q.category?._id || q.category,
       difficulty: q.difficulty || 'medium',
-      timeLimit: q.timeLimit || 10,
+      timeLimit: q.timeLimit || 20,
       points: q.points || 100,
       explanation: q.explanation || '',
     });
@@ -682,7 +682,7 @@ export const AdminPage = () => {
                               {q.text}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>
-                              <span>Timer: <strong>{q.timeLimit || 10}s</strong></span>
+                              <span>Timer: <strong>{q.timeLimit || 20}s</strong></span>
                               <span>&bull;</span>
                               <span>Points: <strong>{q.points || 100} XP</strong></span>
                               <span>&bull;</span>
