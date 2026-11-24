@@ -13,7 +13,7 @@ import { AdminPage } from './pages/AdminPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
-import MetroHero from './components/ui/scroll-locked-video-hero';
+import TetrisLoading from '@/components/ui/tetris-loader';
 import PromptingIsAllYouNeed from './components/ui/animated-hero-section';
 import RainingLetters from './components/ui/modern-animated-hero-section';
 import { SmoothCursor } from '@/registry/magicui/smooth-cursor';
@@ -234,15 +234,76 @@ export const App = () => {
     navigate(`/${view}`);
   };
 
-  // Immediate full-screen scroll-locked video hero right after login
+  // Immediate full-screen Tetris loading animation right after login
   if (showLoginIntro || (isAuthenticated && location.pathname === '/welcome')) {
     return (
-      <MetroHero
-        title="ENTER THE ARENA"
-        tagline="1v1 Real-Time Multiplayer Trivia. Rise to Conqueror."
-        scrollHint="SCROLL TO ENTER"
-        onComplete={handleFinishLoginIntro}
-      />
+      <div
+        style={{
+          minHeight: '100vh',
+          width: '100vw',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#070b12',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          padding: '2rem',
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <h1
+            style={{
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+              color: '#ffffff',
+              marginBottom: '0.4rem',
+            }}
+          >
+            SkillDuels Arena
+          </h1>
+          <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+            Preparing matchmaking engine & leaderboards...
+          </p>
+        </div>
+
+        <TetrisLoading
+          size="md"
+          speed="fast"
+          showLoadingText={true}
+          loadingText="ENTERING THE ARENA..."
+          autoCompleteDurationMs={2600}
+          onComplete={handleFinishLoginIntro}
+        />
+
+        <button
+          type="button"
+          onClick={handleFinishLoginIntro}
+          style={{
+            marginTop: '2.5rem',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            color: '#94a3b8',
+            padding: '6px 18px',
+            borderRadius: '9999px',
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#ffffff';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#94a3b8';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+          }}
+        >
+          Skip Intro →
+        </button>
+      </div>
     );
   }
 
@@ -300,16 +361,77 @@ export const App = () => {
           }
         />
 
-        {/* Post-Login Cinematic Scroll-Locked Video Hero Route */}
+        {/* Post-Login Tetris Loader Route */}
         <Route
           path="/welcome"
           element={
-            <MetroHero
-              title="ENTER THE ARENA"
-              tagline="1v1 Real-Time Multiplayer Trivia. Rise to Conqueror."
-              scrollHint="SCROLL TO ENTER"
-              onComplete={handleFinishLoginIntro}
-            />
+            <div
+              style={{
+                minHeight: '100vh',
+                width: '100vw',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#070b12',
+                position: 'fixed',
+                inset: 0,
+                zIndex: 9999,
+                padding: '2rem',
+              }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h1
+                  style={{
+                    fontSize: '1.75rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                    color: '#ffffff',
+                    marginBottom: '0.4rem',
+                  }}
+                >
+                  SkillDuels Arena
+                </h1>
+                <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+                  Preparing matchmaking engine & leaderboards...
+                </p>
+              </div>
+
+              <TetrisLoading
+                size="md"
+                speed="fast"
+                showLoadingText={true}
+                loadingText="ENTERING THE ARENA..."
+                autoCompleteDurationMs={2600}
+                onComplete={handleFinishLoginIntro}
+              />
+
+              <button
+                type="button"
+                onClick={handleFinishLoginIntro}
+                style={{
+                  marginTop: '2.5rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#94a3b8',
+                  padding: '6px 18px',
+                  borderRadius: '9999px',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#ffffff';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#94a3b8';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                }}
+              >
+                Skip Intro →
+              </button>
+            </div>
           }
         />
 

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { categoryAPI } from '../services/api';
 import { QUESTIONS_PER_MATCH, ERROR_CODES } from '../constants/rules';
 import { Swords, Code, Brain, Compass, Globe, Layers, Sparkles, Loader2, AlertCircle, AlertTriangle, Cpu, X } from 'lucide-react';
-import InfoCard from '../components/ui/info-card';
+import { ServiceCard } from '@/components/ui/service-card';
 import RainingLetters, { ScrambledTitle } from '../components/ui/modern-animated-hero-section';
 
 const ICON_MAP = {
@@ -18,12 +18,45 @@ const ICON_MAP = {
 };
 
 const COLOR_MAP = {
-  technical: '#6366f1',
+  technical: '#3b82f6',
   aptitude: '#10b981',
   logical: '#f59e0b',
   'web-dev': '#06b6d4',
   dsa: '#a855f7',
   ml: '#6366f1',
+};
+
+const CATEGORY_IMAGE_MAP = {
+  dsa: {
+    imgSrc: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&auto=format&fit=crop&q=80',
+    imgAlt: 'Data Structures and Algorithms network graph',
+    variant: 'purple',
+  },
+  logical: {
+    imgSrc: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80',
+    imgAlt: 'Logical reasoning abstract mind',
+    variant: 'amber',
+  },
+  ml: {
+    imgSrc: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&auto=format&fit=crop&q=80',
+    imgAlt: 'Machine Learning AI neural chip',
+    variant: 'blue',
+  },
+  aptitude: {
+    imgSrc: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&auto=format&fit=crop&q=80',
+    imgAlt: 'Quantitative aptitude 3D shapes',
+    variant: 'emerald',
+  },
+  technical: {
+    imgSrc: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&auto=format&fit=crop&q=80',
+    imgAlt: 'Technical CS system matrix code',
+    variant: 'cyan',
+  },
+  'web-dev': {
+    imgSrc: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=400&auto=format&fit=crop&q=80',
+    imgAlt: 'Modern web development screens',
+    variant: 'default',
+  },
 };
 
 const CANONICAL_ORDER = ['dsa', 'logical', 'ml', 'aptitude', 'technical', 'web-dev'];
@@ -575,6 +608,11 @@ export const LobbyPage = ({ onMatchFound }) => {
                     cat.playable !== false &&
                     (cat.questionCount === undefined || cat.questionCount >= QUESTIONS_PER_MATCH)
                   );
+                  const meta = CATEGORY_IMAGE_MAP[cat.slug] || {
+                    imgSrc: 'https://images.unsplash.com/photo-1516116211227-bbc13fcf359d?w=400&auto=format&fit=crop&q=80',
+                    imgAlt: `${cat.name} domain illustration`,
+                    variant: 'default',
+                  };
 
                   return (
                     <div
@@ -589,15 +627,9 @@ export const LobbyPage = ({ onMatchFound }) => {
                           if (isPlayable) setSelectedCategory(cat.slug);
                         }
                       }}
-                      onClick={() => {
-                        if (isPlayable) {
-                          setSelectedCategory(cat.slug);
-                          setMatchError(null);
-                        }
-                      }}
                       style={{ outline: 'none' }}
                     >
-                      <InfoCard
+                      <ServiceCard
                         title={cat.name}
                         description={cat.description || 'Skill domain questions.'}
                         icon={<Icon size={22} strokeWidth={2.2} />}
@@ -606,11 +638,17 @@ export const LobbyPage = ({ onMatchFound }) => {
                         questionCount={cat.questionCount}
                         playable={isPlayable}
                         minQuestionsRequired={QUESTIONS_PER_MATCH}
-                        ariaDescription={
-                          !isPlayable
-                            ? `Category has ${cat.questionCount || 0} active questions. Minimum ${QUESTIONS_PER_MATCH} required to start battle.`
-                            : undefined
-                        }
+                        imgSrc={meta.imgSrc}
+                        imgAlt={meta.imgAlt}
+                        variant={meta.variant}
+                        actionText={isSelected && isPlayable ? 'SELECTED' : isPlayable ? 'SELECT DOMAIN' : 'UNDER QUOTA'}
+                        className="min-h-[220px]"
+                        onClick={() => {
+                          if (isPlayable) {
+                            setSelectedCategory(cat.slug);
+                            setMatchError(null);
+                          }
+                        }}
                       />
                     </div>
                   );
