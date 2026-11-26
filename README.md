@@ -245,15 +245,11 @@ VITE_SOCKET_URL=http://localhost:5000
 ```
 
 ### 3. Seed Database with Initial Content
-Populate verified categories, 20-second battle questions, and an administrator account:
+Populate verified categories, 20-second battle questions, and initial database fixtures:
 
 ```bash
 npm --prefix server run seed
 ```
-
-> **Default Admin Account:**
-> - **Email:** `admin@skillduels.com`
-> - **Password:** `Admin123!`
 
 ### 4. Run Development Servers
 You can run both server and client concurrently or independently:
